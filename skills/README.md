@@ -20,9 +20,13 @@ The leading underscore on `_template` keeps it out of any glob that loads every 
 
 ## Index
 
-| Skill | Description | License | Status |
+| Skill | Description | License | Version |
 | --- | --- | --- | --- |
-| _none yet_ | — | — | — |
+| [`repo-audit`](repo-audit/SKILL.md) | Audits a repository for licensing, CI, link, metadata, and credential gaps | MIT | 1.0.0 |
+| [`skill-authoring`](skill-authoring/SKILL.md) | Writes and repairs `SKILL.md` files so agents actually load them | MIT | 1.0.0 |
+
+`skills/index.json` is the machine-readable form of this table. It is generated, not
+hand-edited — see [Validating](#validating).
 
 External skills worth referencing are tracked in
 [`docs/skill-sources.md`](../docs/skill-sources.md), with measured metrics, install commands, and the
@@ -59,6 +63,41 @@ Optional keys used by some tooling — document any you rely on in the skill its
 4. State the boundaries explicitly: what the skill may do on its own, and what requires the user to ask. A skill that silently writes files or runs destructive commands is a bug.
 5. If the skill ships a validator, add a test beside it and wire it into CI.
 6. Add a row to the index above.
+
+## Validating
+
+The contract above is enforced, not merely described. Two commands, both run in CI:
+
+```shell
+python3 scripts/validate-skills.py                 # validate skills + verify the index
+python3 scripts/validate-skills.py --write-index    # regenerate skills/index.json
+python3 scripts/test-validate-skills.py            # negative tests for the validator itself
+```
+
+The validator fails on: missing front matter, `name` not matching the directory, a
+non-conforming or over-long name, a `description` outside 40-1024 characters, a missing
+top-level heading, dead relative links inside a skill, credential-shaped strings, and a stale
+index. It warns when a description carries no retrieval cue ("Use when …"), because such a
+skill will usually never be selected.
+
+A skill that fails locally will not merge.
+
+## Installing
+
+```shell
+./scripts/install-skills.sh --list                          # targets and skills
+./scripts/install-skills.sh --target claude-code --dry-run  # preview
+./scripts/install-skills.sh --target claude-code            # project-scoped
+./scripts/install-skills.sh --target codex --global         # user-scoped
+```
+
+Paths follow the per-agent conventions documented by the `skills` installer
+([`vercel-labs/skills`](https://github.com/vercel-labs/skills), `docs/agents.md`), so a skill
+lands where the host actually looks. Project-scoped by default; nothing is overwritten without
+`--force`.
+
+Installing is only half of it: the host must be pointed at that directory. A public repository
+is not loaded automatically by any agent platform.
 
 ## Vendoring a third-party skill
 

@@ -43,6 +43,16 @@ jobs:
             "./**/*.md"
           fail: true
 
+  skills:
+    name: Skill contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Negative-test the validator
+        run: python3 scripts/test-validate-skills.py
+      - name: Validate every skill and the index
+        run: python3 scripts/validate-skills.py
+
   credentials:
     name: No credential files tracked
     runs-on: ubuntu-latest
