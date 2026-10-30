@@ -11,9 +11,26 @@ on:
       - "docs/skill-sources.md"
       - "scripts/check-skill-sources.py"
       - "scripts/test-check-skill-sources.py"
+      - ".github/workflows/skill-sources.yml"
+  # Without this, "Verify listed repositories" never reports on a pull request,
+  # so it cannot be a required status check: a required check that never runs
+  # blocks every PR indefinitely. Path-filtered, so it only costs a run when one
+  # of these files actually changes.
+  pull_request:
+    paths:
+      - "data/skill-sources.json"
+      - "docs/skill-sources.md"
+      - "scripts/check-skill-sources.py"
+      - "scripts/test-check-skill-sources.py"
+      - ".github/workflows/skill-sources.yml"
 
 permissions:
   contents: read
+
+# Superseded PR runs are wasted work; keep every run on main (schedule included).
+concurrency:
+  group: skill-sources-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   verify:
