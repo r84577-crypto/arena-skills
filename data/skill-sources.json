@@ -1,0 +1,165 @@
+{
+  "snapshot": "2026-10-30",
+  "note": "Machine-readable source of truth for docs/skill-sources.md. Checked weekly by scripts/check-skill-sources.py via .github/workflows/skill-sources.yml. Update this file first, then the page.",
+  "policy": "stars and commits_90d are point-in-time measurements. CI fails only if a 'recommended' repository is missing or archived; it warns on license drift and on 120+ days without a push.",
+  "repositories": [
+    {
+      "repo": "addyosmani/agent-skills",
+      "tier": "recommended",
+      "category": "software-development",
+      "skills_distinct": 25,
+      "stars": 111806,
+      "license": "MIT",
+      "last_push": "2026-10-29",
+      "commits_90d": 100,
+      "release": "0.6.14",
+      "evidence": "145 eval files under evals/cases/, 9 hooks, CI workflows, 25 distinct SKILL.md"
+    },
+    {
+      "repo": "obra/superpowers",
+      "tier": "recommended",
+      "category": "workflow-methodology",
+      "skills_distinct": 15,
+      "stars": 308823,
+      "license": "MIT",
+      "last_push": "2026-10-29",
+      "commits_90d": 6,
+      "release": "v7.0.1",
+      "evidence": "44 contributors, 12+ harness plugin directories, 6 hooks, vendor-neutral install paths"
+    },
+    {
+      "repo": "github/awesome-copilot",
+      "tier": "recommended",
+      "category": "breadth",
+      "skills_distinct": 466,
+      "stars": 40581,
+      "license": "MIT",
+      "last_push": "2026-10-30",
+      "commits_90d": 100,
+      "release": null,
+      "evidence": "466 SKILL.md, all distinct; 619 scripts, 38 hooks; maintained under the GitHub org"
+    },
+    {
+      "repo": "anthropics/skills",
+      "tier": "recommended-with-caveat",
+      "category": "official-standard",
+      "skills_distinct": 20,
+      "stars": 184856,
+      "license": "Mixed: 14 Apache-2.0 + 4 proprietary",
+      "last_push": "2026-10-28",
+      "commits_90d": 15,
+      "release": null,
+      "evidence": "Ships spec/ and template/; docx, pdf, pptx, xlsx are proprietary and forbid derivative works"
+    },
+    {
+      "repo": "cloudflare/security-audit-skill",
+      "tier": "recommended",
+      "category": "security-defensive",
+      "skills_distinct": 1,
+      "stars": 53110,
+      "license": "MIT",
+      "last_push": "2026-09-14",
+      "commits_90d": 3,
+      "release": null,
+      "evidence": "Validators shipped with .test.cjs tests and a machine-readable findings schema"
+    },
+    {
+      "repo": "coreyhaines31/marketingskills",
+      "tier": "recommended",
+      "category": "business-operations",
+      "skills_distinct": 54,
+      "stars": 57372,
+      "license": "MIT",
+      "last_push": "2026-10-29",
+      "commits_90d": 100,
+      "release": "v2.13.10",
+      "evidence": "54 distinct skills, 238 scripts, tests/ directory, 58 contributors"
+    },
+    {
+      "repo": "K-Dense-AI/scientific-agent-skills",
+      "tier": "recommended",
+      "category": "science-data",
+      "skills_distinct": 178,
+      "stars": 55317,
+      "license": "MIT",
+      "last_push": "2026-10-26",
+      "commits_90d": 95,
+      "release": "v2.72.0",
+      "evidence": "178 distinct skills, tests/ directory, 776 scripts; heavy Python and uv runtime"
+    },
+    {
+      "repo": "kepano/obsidian-skills",
+      "tier": "recommended",
+      "category": "personal-productivity",
+      "skills_distinct": 6,
+      "stars": 50413,
+      "license": "MIT",
+      "last_push": "2026-09-15",
+      "commits_90d": 3,
+      "release": null,
+      "evidence": "6 skills and zero shipped scripts, the lowest-risk install in this guide"
+    },
+    {
+      "repo": "wshobson/agents",
+      "tier": "recommended",
+      "category": "plugin-marketplace",
+      "skills_distinct": 185,
+      "stars": 41994,
+      "license": "MIT",
+      "last_push": "2026-10-26",
+      "commits_90d": 90,
+      "release": null,
+      "evidence": "185 skills organised as plugins across 7+ harnesses, 91 contributors"
+    },
+    {
+      "repo": "mvanhorn/last30days-skill",
+      "tier": "recommended",
+      "category": "research-web",
+      "skills_distinct": 1,
+      "stars": 65926,
+      "license": "MIT",
+      "last_push": "2026-10-28",
+      "commits_90d": 100,
+      "release": "v3.31.0",
+      "evidence": "Single skill with 432 scripts and explicit allowed-tools front matter"
+    }
+  ],
+  "avoid": [
+    {
+      "repo": "ComposioHQ/awesome-claude-skills",
+      "reason": "No license file while vendoring 864 SKILL.md; 0 commits in 90 days"
+    },
+    {
+      "repo": "travisvn/awesome-claude-skills",
+      "reason": "No license, 2 contributors, last push 2026-04-28"
+    },
+    {
+      "repo": "VoltAgent/awesome-agent-skills",
+      "reason": "MIT but contains 0 SKILL.md; a link list with nothing to install"
+    },
+    {
+      "repo": "affaan-m/ECC",
+      "reason": "1068 SKILL.md but only 317 distinct; 518 are copies under docs/"
+    },
+    {
+      "repo": "morluto/rea",
+      "reason": "5 SKILL.md against 5983 scripts plus native/ and patches/; an application, not a skill"
+    },
+    {
+      "repo": "paperclipai/paperclip",
+      "reason": "85 skills, 7914 scripts, Docker runtime; an application"
+    },
+    {
+      "repo": "mksglu/context-mode",
+      "reason": "NOASSERTION license, 132 hook files, pre-release tags only"
+    },
+    {
+      "repo": "msitarzewski/agency-agents",
+      "reason": "0 SKILL.md; subagent personas rather than skills"
+    },
+    {
+      "repo": "Leonxlnx/taste-skill",
+      "reason": "Description claims skills plural; tree contains one"
+    }
+  ]
+}

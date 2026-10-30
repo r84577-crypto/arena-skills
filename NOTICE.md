@@ -1,8 +1,16 @@
 # Notices and attribution
 
-This repository contains two kinds of material under two licenses. The MIT
-license in `LICENSE` covers the repository's original content. It does **not**
-relicense the GitHub Docs material vendored under `docs/`.
+This repository contains material under two licenses. The MIT license in
+`LICENSE` covers the repository's original content. It does **not** relicense
+the GitHub Docs material vendored under `docs/`.
+
+`docs/` contains both kinds of material, so check the file:
+
+| File | Origin | License |
+| --- | --- | --- |
+| `docs/skill-sources.md` | Original analysis for this repository | MIT |
+| `data/skill-sources.json` | Original data for this repository | MIT |
+| every other file in `docs/` | Derived from GitHub Docs | CC BY 4.0 (below) |
 
 ## Vendored documentation
 

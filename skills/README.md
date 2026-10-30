@@ -24,11 +24,10 @@ The leading underscore on `_template` keeps it out of any glob that loads every 
 | --- | --- | --- | --- |
 | _none yet_ | — | — | — |
 
-External skills worth referencing (not vendored here):
-
-| Skill | Description | License |
-| --- | --- | --- |
-| [`cloudflare/security-audit-skill`](https://github.com/cloudflare/security-audit-skill) | Multi-phase security audits with independently verified, machine-readable findings | MIT |
+External skills worth referencing are tracked in
+[`docs/skill-sources.md`](../docs/skill-sources.md), with measured metrics, install commands, and the
+licensing traps to avoid. That page is verified and dated; this index is not duplicated here so the
+two cannot drift apart.
 
 ## The `SKILL.md` contract
 

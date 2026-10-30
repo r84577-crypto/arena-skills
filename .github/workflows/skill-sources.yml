@@ -1,0 +1,27 @@
+name: skill-sources
+
+on:
+  schedule:
+    # Weekly, Monday 06:00 UTC: catches deleted, archived, or abruptly stale entries.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+  push:
+    paths:
+      - "data/skill-sources.json"
+      - "scripts/check-skill-sources.py"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify listed repositories
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the data file offline
+        run: python3 scripts/check-skill-sources.py --offline
+      - name: Verify repositories against the GitHub API
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/check-skill-sources.py

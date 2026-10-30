@@ -8,6 +8,8 @@ This repository is documentation and skills — no compiled artifacts. The
 ```text
 README.md              index
 docs/                  GitHub Packages reference (vendored, CC BY 4.0)
+                       plus skill-sources.md (original, MIT)
+data/                  skill-sources.json, checked weekly by CI
 skills/                skills, one directory each
 skills/_template/      starting point for a new skill
 scripts/               maintenance scripts
@@ -79,6 +81,26 @@ failed with "invalid reference format".
 ```
 
 Prefixes in use: `docs:`, `skills:`, `ci:`, `chore:`.
+
+## Updating the skill source guide
+
+`docs/skill-sources.md` is a dated snapshot; `data/skill-sources.json` is what CI verifies.
+
+1. Change `data/skill-sources.json` first.
+2. Re-measure before you write numbers. These reproduce the table for any repository:
+
+   ```shell
+   gh api repos/OWNER/REPO/git/trees/HEAD?recursive=1 \
+     --jq '[.tree[].path | select(test("SKILL.md$"))] | length'
+   gh api "repos/OWNER/REPO/commits?since=$(date -u -d '90 days ago' +%FT%TZ)&per_page=100" --jq length
+   ```
+
+3. Run `python3 scripts/check-skill-sources.py` — it fails on deleted or archived repositories and
+   warns on license drift or 120+ days without a push.
+4. Update the page tables to match, and bump the snapshot date in both files.
+
+Only add a repository you have inspected yourself. An entry without measured numbers does not belong
+on that page — that is the entire point of it.
 
 ## Adding or changing a skill
 

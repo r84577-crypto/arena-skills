@@ -6,6 +6,7 @@ This repository has two halves, and they are deliberately separate:
 
 - **[`skills/`](skills/README.md)** — the actual skills, one directory per skill, each with a `SKILL.md`. This is the part that is meant to be loaded by an agent.
 - **[`docs/`](docs/authenticating.md)** — reference material for publishing and consuming packages on GitHub Packages (NuGet, Maven, npm, RubyGems, containers). Useful to humans and to agents, but not itself a skill.
+- **[`data/skill-sources.json`](data/skill-sources.json)** — the machine-readable list behind [`docs/skill-sources.md`](docs/skill-sources.md), checked weekly by CI for dead or archived sources.
 
 The two halves are separate because a skill is an instruction set with a defined contract, and copied vendor documentation is not. Mixing them made both harder to use — see [Why this layout](#why-this-layout).
 
@@ -28,6 +29,7 @@ The two halves are separate because a skill is an instruction set with a defined
 | [RubyGems](docs/rubygems.md) | `~/.gem/credentials`, Bundler sources, gem limits |
 | [Container registry](docs/container-registry.md) | `ghcr.io`, digests, labels, multi-arch publishing |
 | [Connecting a repository to a package](docs/connecting-a-repository.md) | Linking rules for every registry |
+| [Agent Skills: verified source guide](docs/skill-sources.md) | Which skill repositories are worth trusting, with measured metrics and the licensing traps |
 
 ## Using a skill
 
