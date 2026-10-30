@@ -276,6 +276,77 @@ version: 1.0.0
             return False, f"version recorded as {entry['version']!r}, expected '2.0.0'"
         return True, ""
 
+    results.append(case(
+        "no Boundaries section",
+        lambda root: edit_skill(root, "repo-audit", "## Boundaries", "## Notes"),
+        expect_fail=True,
+        expect_text="no '## Boundaries' section",
+    ))
+
+    results.append(case(
+        "empty Boundaries section",
+        lambda root: edit_skill(
+            root, "skill-authoring",
+            "## Boundaries\n",
+            "## Boundaries\n\nNothing specific here.\n\n## Validation\n",
+        ),
+        expect_fail=True,
+        expect_text="'## Boundaries' has no bullets",
+    ))
+
+    results.append(case(
+        "allowed-tools entry is not a tool name",
+        lambda root: edit_skill(
+            root, "repo-audit",
+            "allowed-tools: Read, Bash",
+            "allowed-tools: Read, Bash, ???",
+        ),
+        expect_fail=True,
+        expect_text="is not a tool name",
+    ))
+
+    def advisory_tools(root):
+        """An unrecognised tool name must warn, not fail: the field is advisory."""
+        edit_skill(root, "repo-audit", "allowed-tools: Read, Bash", "allowed-tools: Read, Bashh")
+        result = run_in(root)
+        output = result.stdout + result.stderr
+        if result.returncode != 0:
+            return False, f"exit {result.returncode}; a shippable skill must not fail on a tool typo"
+        if "unknown tool" not in output:
+            return False, f"no warning emitted; output was: {output.strip()[:200]}"
+        return True, ""
+
+    results.append(custom_case(
+        "unknown tool name warns but does not fail",
+        advisory_tools,
+    ))
+
+    def list_form_tools(root):
+        """A YAML list keeps parsing as a list; it must validate like the comma form."""
+        set_front_matter(
+            root,
+            "repo-audit",
+            "name: repo-audit\n"
+            "description: >\n"
+            "  Audits a repository for the hygiene and trust gaps that block collaboration.\n"
+            "  Use when asked to review a repository or decide whether to adopt one.\n"
+            "license: MIT\n"
+            "allowed-tools:\n"
+            "  - Read\n"
+            "  - Bash(git:*)\n",
+        )
+        run_in(root, "--write-index")  # the description changed; isolate the tool check
+        result = run_in(root)
+        output = result.stdout + result.stderr
+        if result.returncode != 0:
+            return False, f"exit {result.returncode}: {output.strip()[:200]}"
+        return True, ""
+
+    results.append(custom_case(
+        "allowed-tools accepts the YAML list form and a scoped command",
+        list_form_tools,
+    ))
+
     results.append(custom_case(
         "metadata.version is recorded in the index",
         metadata_version,

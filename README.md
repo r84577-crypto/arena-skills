@@ -46,6 +46,19 @@ Copy or clone the skill's directory into wherever your agent discovers skills, f
 
 A skill is self-contained: `SKILL.md` is the entry point, and any supporting files sit beside it.
 
+### What a skill's boundaries mean
+
+Each `SKILL.md` declares `allowed-tools` in its front matter and explains the intent in a
+`## Boundaries` section. **These are advisory.** The format has no enforcement mechanism: a
+host is free to ignore `allowed-tools` entirely, and none of the agents these skills target
+document it as a sandbox. `validate-skills.py` checks that the declaration is well formed and
+that a Boundaries section exists and says something specific — it cannot check that anything
+honours it.
+
+Treat the boundaries as a statement of what the skill is *designed* to do, and enforce the
+real limit at the host: permission prompts, a read-only checkout, or a container. See
+[`skills/skill-authoring/SKILL.md`](skills/skill-authoring/SKILL.md#boundaries).
+
 The installer writes to the directory your host actually scans, but installing is not loading —
 see [`skills/README.md`](skills/README.md#installing).
 
@@ -87,5 +100,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Run `make check` before opening a pull r
 - Vendored GitHub Docs material under `docs/` — CC BY 4.0, attributed in [NOTICE.md](NOTICE.md). It stays under CC BY 4.0 and is not relicensed by this repository's MIT license.
 
 ## Security
+
+Report vulnerabilities privately — see [`SECURITY.md`](SECURITY.md). Conduct expectations are in
+[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
 
 Do not commit tokens. Every credential file referenced in these docs (`nuget.config`, `settings.xml`, `.npmrc`, `~/.gem/credentials`, Docker credential stores) must stay out of version control — `.gitignore` covers the common cases, and secret scanning with push protection is recommended for any fork of this repository.

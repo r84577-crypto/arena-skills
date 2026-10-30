@@ -28,18 +28,28 @@ make          # both of the above
 ```
 
 `make check` runs, in order: relative links/anchors/images, the skill contract,
-negative tests for both checkers, the data-file shape, and a credential scan of
-every tracked file. It is deliberately the same set CI runs, so a green `make`
-means a green pull request.
+negative tests for every checker, the data-file shape and its agreement with the
+published page, and a credential scan of every tracked file. It is deliberately the
+same set CI runs, so a green `make` means a green pull request.
 
-Two tools exist because both were needed after real defects:
+A test suite exists for each checker because every one of them shipped a defect that
+a test would have caught:
 
-| Target | Guards against |
+| Suite | Guards against |
 | --- | --- |
-| `scripts/test-check-links.py` | Indented fences parsed as links; broken images passing silently |
-| `scripts/test-validate-skills.py` | Malformed front matter, name/directory drift, tokens in shipped scripts, stale index |
+| `scripts/test-check-links.py` | Indented fences parsed as links; broken images passing silently; links escaping the repository |
+| `scripts/test-validate-skills.py` | Malformed front matter, name/directory drift, tokens in shipped scripts, stale index, missing or empty `## Boundaries`, unparseable `allowed-tools` |
+| `scripts/test-check-skill-sources.py` | Bad tier, date, or repo shape; a useless `avoid` entry; a ranked table that disagrees with the data file |
+| `scripts/test-install-skills.py` | Wrong host directory, silent overwrite, dry runs that write, and the empty-array crash on bash 3.2 |
 
 `make fix` regenerates `skills/index.json` after you add or change a skill.
+
+### When the data file changes
+
+`data/skill-sources.json` is the source of truth and `docs/skill-sources.md` is its
+readable rendering. Update the JSON first, then the page — `make check` compares the
+ranked table against the JSON and fails on any disagreement, so the two cannot drift
+apart unnoticed.
 
 External URLs are checked in CI as a separate report-only job, because
 third-party documentation sites move and rate-limit bots — a red external check

@@ -8,10 +8,11 @@ Checks each repository against the GitHub API and reports:
   OK      reachable, not archived, recently active
 
 Usage:
-    python3 scripts/check-skill-sources.py [--strict] [--offline]
+    python3 scripts/check-skill-sources.py [--strict] [--offline] [--check-docs]
 
-  --strict    treat warnings as failures
-  --offline   skip network entirely (validates the JSON shape only)
+  --strict       treat warnings as failures
+  --offline      skip network entirely (validates the JSON shape only)
+  --check-docs   compare the ranked table in docs/skill-sources.md against the JSON
 
 Requires the `gh` CLI and a token in GH_TOKEN or GITHUB_TOKEN.
 """
@@ -26,7 +27,9 @@ import re
 import subprocess
 import sys
 
-DATA = pathlib.Path(__file__).resolve().parent.parent / "data" / "skill-sources.json"
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+DATA = ROOT / "data" / "skill-sources.json"
+DOCS = ROOT / "docs" / "skill-sources.md"
 STALE_DAYS = 120
 REQUIRED_KEYS = {"repo", "tier", "skills_distinct", "license", "last_push"}
 TIERS = {"recommended", "recommended-with-caveat"}
@@ -94,9 +97,107 @@ def validate_avoid(entries: list[dict]) -> list[str]:
     return problems
 
 
+TABLE_ROW_RE = re.compile(r"^\|\s*(\d+)\s*\|(.+)$")
+REPO_LINK_RE = re.compile(r"github\.com/([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)")
+
+
+def _cell(value) -> str:
+    """Render a JSON field the way the page writes it."""
+    if isinstance(value, int):
+        return f"{value:,}"
+    return str(value)
+
+
+def _commits(value) -> str:
+    # The page collapses 100+ to '100+' because the 90-day query paginates at 100.
+    return "100+" if isinstance(value, int) and value >= 100 else str(value)
+
+
+def _license(value: str) -> str:
+    # 'Mixed: 14 Apache-2.0 + 4 proprietary' renders as 'Mixed' in the table.
+    return value.split(":")[0].strip()
+
+
+def parse_page(text: str) -> tuple[dict[str, list[str]], str | None]:
+    """Pull the ranked shortlist table and snapshot date out of the page.
+
+    Returns ({repo: cells}, snapshot). Cells are #, distinct, stars, license,
+    last push, 90-day commits - in page order.
+    """
+    rows: dict[str, list[str]] = {}
+    snapshot = None
+    match = re.search(r"\*\*Snapshot:\*\*\s*(\d{4}-\d{2}-\d{2})", text)
+    if match:
+        snapshot = match.group(1)
+
+    in_table = False
+    for line in text.splitlines():
+        if line.startswith("| # | Repository"):
+            in_table = True
+            continue
+        if in_table:
+            if not line.startswith("|"):
+                break
+            if set(line) <= set("|-: "):
+                continue  # separator
+            found = REPO_LINK_RE.search(line)
+            if not found:
+                continue
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            rows[found.group(1)] = cells[1:]
+    return rows, snapshot
+
+
+def check_docs(data: dict, page_text: str) -> list[str]:
+    """The page and the JSON are two renderings of one snapshot; compare them.
+
+    The JSON is the source of truth (see its `note` field). Nothing used to
+    compare them, so a corrected star count or a dropped repository could sit in
+    one and not the other indefinitely - and the page is what people read.
+    """
+    problems: list[str] = []
+    rows, snapshot = parse_page(page_text)
+
+    expected_snapshot = str(data.get("snapshot", ""))
+    if snapshot != expected_snapshot:
+        problems.append(
+            f"snapshot date: page says {snapshot!r}, data says {expected_snapshot!r}"
+        )
+
+    repos = data.get("repositories", [])
+    listed = {entry["repo"] for entry in repos}
+
+    for name in sorted(set(rows) - listed):
+        problems.append(f"{name}: in the page's ranked table but not in the data file")
+    for entry in repos:
+        name = entry["repo"]
+        if name not in rows:
+            problems.append(f"{name}: in the data file but missing from the page's ranked table")
+            continue
+        cells = rows[name]
+        if len(cells) < 6:
+            problems.append(f"{name}: ranked row has {len(cells)} columns, expected 6")
+            continue
+        distinct, stars, license_, last_push, commits = cells[1:6]
+        checks = [
+            ("distinct skills", distinct, _cell(entry.get("skills_distinct"))),
+            ("stars", stars, _cell(entry.get("stars", ""))),
+            ("license", license_, _license(str(entry.get("license", "")))),
+            ("last push", last_push, str(entry.get("last_push", ""))),
+            ("90d commits", commits, _commits(entry.get("commits_90d"))),
+        ]
+        for label, page_value, data_value in checks:
+            if page_value != data_value:
+                problems.append(
+                    f"{name}: {label} is {page_value!r} in the page, {data_value!r} in the data file"
+                )
+    return problems
+
+
 def main(argv: list[str]) -> int:
     strict = "--strict" in argv
     offline = "--offline" in argv
+    check_docs_flag = "--check-docs" in argv
 
     if not DATA.exists():
         print(f"error: {DATA} not found", file=sys.stderr)
@@ -123,6 +224,23 @@ def main(argv: list[str]) -> int:
         f"data file valid: {len(repos)} checked repositories, "
         f"{len(avoid_entries)} avoid entries, snapshot {data.get('snapshot')}"
     )
+    doc_problems: list[str] = []
+    if check_docs_flag:
+        if not DOCS.exists():
+            print(f"error: {DOCS} not found", file=sys.stderr)
+            return 1
+        doc_problems = check_docs(data, DOCS.read_text(encoding="utf-8"))
+        if doc_problems:
+            print("page and data file disagree:", file=sys.stderr)
+            for problem in doc_problems:
+                print(f"  - {problem}", file=sys.stderr)
+            print(
+                "  fix the data file first, then regenerate the page's ranked table",
+                file=sys.stderr,
+            )
+            return 1
+        print(f"docs/skill-sources.md ranked table matches the data file ({len(repos)} rows)")
+
     if offline:
         print("offline mode: skipping network checks")
         return 0

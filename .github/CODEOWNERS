@@ -1,0 +1,8 @@
+# Every path is owned by the maintainer until there is a second one.
+# CODEOWNERS is not enforcement by itself: turn on
+# Settings -> Branches -> "Require review from Code Owners" for that.
+* @r84577-crypto
+
+# Changes here change what CI runs, so they get the same owner as the code.
+/.github/ @r84577-crypto
+/scripts/ @r84577-crypto
