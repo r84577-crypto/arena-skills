@@ -112,21 +112,26 @@ else
   DEST_ROOT="$PWD/$DEST_ROOT"
 fi
 
-# Collect skills to install.
+# Collect skills to install. A counter is used instead of ${#SKILLS[@]} because
+# bash 3.2 (the default /bin/bash on macOS) treats an empty array as unset under
+# `set -u` and aborts before the friendly error below can run.
 SKILLS=()
+SKILL_COUNT=0
 if [ -n "$SKILL" ]; then
   [ -f "$SKILLS_SRC/$SKILL/SKILL.md" ] || { echo "error: no such skill '$SKILL' (try --list)" >&2; exit 2; }
   SKILLS=("$SKILL")
+  SKILL_COUNT=1
 else
   for d in "$SKILLS_SRC"/*/; do
     name="$(basename "$d")"
     [ "$name" = "_template" ] && continue
     [ -f "$d/SKILL.md" ] || continue
     SKILLS+=("$name")
+    SKILL_COUNT=$((SKILL_COUNT + 1))
   done
 fi
 
-[ ${#SKILLS[@]} -gt 0 ] || { echo "error: no skills found to install" >&2; exit 2; }
+[ "$SKILL_COUNT" -gt 0 ] || { echo "error: no skills found to install" >&2; exit 2; }
 
 echo "target:  $TARGET ($SCOPE)"
 echo "dest:    $DEST_ROOT"
@@ -138,7 +143,7 @@ if [ "$DRY_RUN" -eq 0 ]; then
 fi
 
 installed=0
-for name in "${SKILLS[@]}"; do
+for name in "${SKILLS[@]:-}"; do
   src="$SKILLS_SRC/$name"
   dest="$DEST_ROOT/$name"
 

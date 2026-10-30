@@ -30,20 +30,17 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SKILLS_DIR = ROOT / "skills"
 INDEX = SKILLS_DIR / "index.json"
-IGNORED_DIRS = {"_template"}
+TEMPLATE_DIRS = {"_template"}
+
+# Shared with CI so a token in a skill's shell script is caught by the same rules
+# as one in prose. Sibling import: both files live in scripts/.
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from scan_secrets import find_secrets, looks_binary  # noqa: E402
 
 NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 LINK_RE = re.compile(r"(?<!!)\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 FENCE_RE = re.compile(r"^(`{3,}|~{3,}).*?^\1[^\n]*$", re.M | re.S)
 INLINE_CODE_RE = re.compile(r"`[^`\n]*`")
-CREDENTIAL_RE = re.compile(
-    r"(gh[pousr]_[A-Za-z0-9_]{20,})"
-    r"|(github_pat_[A-Za-z0-9_]{20,})"
-    r"|(AKIA[0-9A-Z]{16})"
-    r"|(BEGIN [A-Z ]*PRIVATE KEY)"
-    r"|(xox[baprs]-[0-9A-Za-z-]{10,})"
-    r"|(AIza[0-9A-Za-z_-]{35})"
-)
 RETRIEVAL_CUES = ("use when", "use for", "when the user", "trigger", "use this")
 MIN_DESC, MAX_DESC = 40, 1024
 
@@ -104,6 +101,25 @@ def parse_front_matter(body: str) -> dict[str, str]:
             data[key] = joiner.join(block).strip()
             continue
 
+        if not value:
+            # A nested map (e.g. `metadata:`) — record one level as dotted keys so
+            # `metadata.version` is not silently lost.
+            nested: dict[str, str] = {}
+            j = i + 1
+            while j < len(lines) and (not lines[j].strip() or lines[j][:1].isspace()):
+                sub = re.match(r"^\s+([A-Za-z0-9_.-]+):\s*(.*)$", lines[j])
+                if sub:
+                    sub_value = sub.group(2).strip()
+                    if len(sub_value) >= 2 and sub_value[0] == sub_value[-1] and sub_value[0] in "\"'":
+                        sub_value = sub_value[1:-1]
+                    nested[sub.group(1)] = sub_value
+                j += 1
+            for sub_key, sub_value in nested.items():
+                data[f"{key}.{sub_key}"] = sub_value
+            data[key] = ""
+            i = j
+            continue
+
         if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
             value = value[1:-1]
         data[key] = value
@@ -131,13 +147,20 @@ def check_links(skill: str, path: pathlib.Path, text: str) -> None:
             err(skill, f"dead relative link in {path.name}: {target}")
 
 
-def check_credentials(skill: str, path: pathlib.Path, text: str) -> None:
-    match = CREDENTIAL_RE.search(text)
-    if match:
-        err(skill, f"credential-shaped string in {path.name} ({match.group(0)[:12]}...)")
+def check_credentials(skill: str, directory: pathlib.Path) -> None:
+    """Scan every shipped file, not just prose: scripts are where tokens hide."""
+    for path in sorted(directory.rglob("*")):
+        if not path.is_file() or looks_binary(path):
+            continue
+        try:
+            text = path.read_text(encoding="utf-8", errors="strict")
+        except (UnicodeDecodeError, OSError):
+            continue
+        for name, excerpt in find_secrets(text):
+            err(skill, f"possible {name} in {path.relative_to(directory)} ({excerpt})")
 
 
-def load_skill(directory: pathlib.Path) -> dict[str, str] | None:
+def load_skill(directory: pathlib.Path, template: bool = False) -> dict[str, str] | None:
     name = directory.name
     skill_md = directory / "SKILL.md"
     if not skill_md.is_file():
@@ -156,7 +179,8 @@ def load_skill(directory: pathlib.Path) -> dict[str, str] | None:
     declared = fm.get("name", "")
     if not declared:
         err(name, "front matter is missing `name`")
-    else:
+    elif not template:
+        # The template intentionally documents a placeholder name.
         if declared != name:
             err(name, f"front matter name '{declared}' does not match directory '{name}'")
         if not NAME_RE.match(declared):
@@ -183,9 +207,9 @@ def load_skill(directory: pathlib.Path) -> dict[str, str] | None:
         warn(name, "no `license` in front matter (required if you vendor this skill)")
 
     for md in sorted(directory.rglob("*.md")):
-        content = md.read_text(encoding="utf-8")
-        check_links(name, md, content)
-        check_credentials(name, md, content)
+        check_links(name, md, md.read_text(encoding="utf-8"))
+
+    check_credentials(name, directory)
 
     scripts = [p for p in directory.rglob("*") if p.suffix in {".sh", ".py", ".js", ".mjs", ".cjs", ".ts", ".ps1"}]
     if scripts:
@@ -196,7 +220,8 @@ def load_skill(directory: pathlib.Path) -> dict[str, str] | None:
         "path": f"skills/{name}",
         "description": description,
         "license": fm.get("license", ""),
-        "version": fm.get("version", ""),
+        # Several published skills declare version under `metadata:`.
+        "version": fm.get("version") or fm.get("metadata.version", ""),
         "has_scripts": bool(scripts),
     }
 
@@ -236,14 +261,17 @@ def main(argv: list[str]) -> int:
         print("error: skills/ directory not found", file=sys.stderr)
         return 1
 
-    directories = sorted(
-        d for d in SKILLS_DIR.iterdir() if d.is_dir() and d.name not in IGNORED_DIRS
-    )
+    directories = sorted(d for d in SKILLS_DIR.iterdir() if d.is_dir())
     if not directories:
         print("error: no skills found under skills/ (index.json would be empty)", file=sys.stderr)
         return 1
 
-    entries = [e for e in (load_skill(d) for d in directories) if e]
+    # The template is validated (it is what everyone copies) but never indexed.
+    entries = []
+    for directory in directories:
+        entry = load_skill(directory, template=directory.name in TEMPLATE_DIRS)
+        if entry and directory.name not in TEMPLATE_DIRS:
+            entries.append(entry)
 
     if write_index:
         INDEX.write_text(json.dumps(build_index(entries), indent=2) + "\n", encoding="utf-8")

@@ -79,7 +79,7 @@ Nothing was thrown away: the previous single-file revision is intact at commit `
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Documentation changes must pass the markdown and link checks in CI.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Run `make check` before opening a pull request — it runs the same checks as CI, including the skill contract and its test suites.
 
 ## License
 

@@ -18,9 +18,12 @@ import re
 import sys
 
 SKIP_DIRS = {"node_modules", ".git", ".cache", "dist", "build"}
-FENCE_RE = re.compile(r"^(`{3,}|~{3,}).*?^\1[^\n]*$", re.M | re.S)
+# Leading whitespace is significant in real documents: fences inside list items
+# are indented, and their contents must not be parsed as links.
+FENCE_RE = re.compile(r"^[ \t]*(`{3,}|~{3,})[^\n]*\n.*?^[ \t]*\1[^\n]*$", re.M | re.S)
 INLINE_CODE_RE = re.compile(r"`[^`\n]*`")
 LINK_RE = re.compile(r"(?<!!)\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
+IMAGE_RE = re.compile(r"!\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.*?)\s*$", re.M)
 
 
@@ -100,6 +103,24 @@ def main(argv: list[str]) -> int:
                 if fragment not in anchor_cache.get(rel, set()):
                     problems.append(f"{path}: dead anchor {target}")
 
+        # Images are assets, not pages: the link pass skips them via the `(?<!!)`
+        # lookahead, so a deleted diagram used to pass silently.
+        for target in IMAGE_RE.findall(visible_text(text_cache[path])):
+            if target.startswith(("http://", "https://", "//", "#")):
+                continue
+            checked += 1
+            file_part = target.partition("#")[0]
+            if not file_part:
+                continue
+            dest = (path.parent / file_part).resolve()
+            try:
+                dest.relative_to(pathlib.Path.cwd().resolve())
+            except ValueError:
+                problems.append(f"{path}: image escapes the repository: {target}")
+                continue
+            if not dest.exists():
+                problems.append(f"{path}: missing image {target}")
+
     # Duplicate headings produce ambiguous anchors (GitHub silently appends -1, -2).
     for path in files:
         seen: dict[str, int] = {}
@@ -110,7 +131,7 @@ def main(argv: list[str]) -> int:
             if count > 1:
                 problems.append(f"{path}: duplicate heading anchor '{s}' x{count}")
 
-    print(f"checked {checked} relative links and anchors in {len(files)} files")
+    print(f"checked {checked} relative links, anchors, and images in {len(files)} files")
     if problems:
         print(f"\n{len(problems)} problem(s):", file=sys.stderr)
         for p in problems:

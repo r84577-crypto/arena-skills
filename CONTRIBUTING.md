@@ -22,21 +22,28 @@ NOTICE.md              attribution and licensing per file
 Run these before opening a pull request. They are the same checks CI runs.
 
 ```shell
-# Structure: headings, lists, fences, blanks around blocks
-npx --yes markdownlint-cli2@0.13.0
-
-# Relative links, heading anchors, duplicate headings (offline, no deps)
-python3 scripts/check-links.py
-
-# Skill contract: front matter, name/directory match, index freshness
-python3 scripts/validate-skills.py
-python3 scripts/test-validate-skills.py
+make check    # every Python check + the test suites
+make md       # markdownlint (needs Node)
+make          # both of the above
 ```
 
-Both must pass; CI runs exactly these. External URLs are checked in CI as a
-separate report-only job, because third-party documentation sites move and
-rate-limit bots — a red external check does not block a merge, but it does mean
-a link needs attention.
+`make check` runs, in order: relative links/anchors/images, the skill contract,
+negative tests for both checkers, the data-file shape, and a credential scan of
+every tracked file. It is deliberately the same set CI runs, so a green `make`
+means a green pull request.
+
+Two tools exist because both were needed after real defects:
+
+| Target | Guards against |
+| --- | --- |
+| `scripts/test-check-links.py` | Indented fences parsed as links; broken images passing silently |
+| `scripts/test-validate-skills.py` | Malformed front matter, name/directory drift, tokens in shipped scripts, stale index |
+
+`make fix` regenerates `skills/index.json` after you add or change a skill.
+
+External URLs are checked in CI as a separate report-only job, because
+third-party documentation sites move and rate-limit bots — a red external check
+does not block a merge, but it does mean a link needs attention.
 
 `MD013` (line length) is disabled deliberately: these pages carry long URLs and
 tables, and wrapping them harms diffs more than it helps readability.
