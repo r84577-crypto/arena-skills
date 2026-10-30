@@ -22,12 +22,16 @@ import datetime
 import json
 import os
 import pathlib
+import re
 import subprocess
 import sys
 
 DATA = pathlib.Path(__file__).resolve().parent.parent / "data" / "skill-sources.json"
 STALE_DAYS = 120
 REQUIRED_KEYS = {"repo", "tier", "skills_distinct", "license", "last_push"}
+TIERS = {"recommended", "recommended-with-caveat"}
+REPO_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
+DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
 def gh(path: str) -> dict | None:
@@ -55,12 +59,39 @@ def days_since(date_str: str) -> int:
 
 
 def validate_shape(entry: dict) -> list[str]:
+    problems: list[str] = []
     missing = REQUIRED_KEYS - entry.keys()
     if missing:
         return [f"missing keys {sorted(missing)}"]
+
     if not isinstance(entry["skills_distinct"], int) or entry["skills_distinct"] < 1:
-        return ["skills_distinct must be a positive integer"]
-    return []
+        problems.append("skills_distinct must be a positive integer")
+    if entry["tier"] not in TIERS:
+        problems.append(f"tier {entry['tier']!r} is not one of {sorted(TIERS)}")
+    if not REPO_RE.match(str(entry["repo"])):
+        problems.append(f"repo {entry['repo']!r} is not owner/name")
+    if not DATE_RE.match(str(entry["last_push"])):
+        problems.append(f"last_push {entry['last_push']!r} is not YYYY-MM-DD")
+    if "stars" in entry and not isinstance(entry["stars"], int):
+        problems.append("stars must be an integer")
+    if "commits_90d" in entry and not isinstance(entry["commits_90d"], int):
+        problems.append("commits_90d must be an integer")
+    return problems
+
+
+def validate_avoid(entries: list[dict]) -> list[str]:
+    """The avoid list was previously never inspected, so it could rot silently."""
+    problems: list[str] = []
+    for entry in entries:
+        missing = {"repo", "reason"} - entry.keys()
+        if missing:
+            problems.append(f"avoid entry {entry.get('repo', '<unnamed>')}: missing {sorted(missing)}")
+            continue
+        if not REPO_RE.match(str(entry["repo"])):
+            problems.append(f"avoid entry {entry['repo']!r} is not owner/name")
+        if len(str(entry["reason"])) < 10:
+            problems.append(f"avoid entry {entry['repo']}: reason is too short to be useful")
+    return problems
 
 
 def main(argv: list[str]) -> int:
@@ -80,12 +111,18 @@ def main(argv: list[str]) -> int:
     for entry in repos:
         for problem in validate_shape(entry):
             shape_errors.append(f"{entry.get('repo', '<unnamed>')}: {problem}")
+    avoid_entries = data.get("avoid", [])
+    shape_errors.extend(validate_avoid(avoid_entries))
+
     if shape_errors:
         print("data validation failed:", file=sys.stderr)
         for problem in shape_errors:
             print(f"  - {problem}", file=sys.stderr)
         return 1
-    print(f"data file valid: {len(repos)} repositories, snapshot {data.get('snapshot')}")
+    print(
+        f"data file valid: {len(repos)} checked repositories, "
+        f"{len(avoid_entries)} avoid entries, snapshot {data.get('snapshot')}"
+    )
     if offline:
         print("offline mode: skipping network checks")
         return 0

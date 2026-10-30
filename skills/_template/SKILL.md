@@ -1,6 +1,8 @@
 ---
 name: example-skill
 description: Replace this with one or two sentences describing what the skill does and the exact conditions under which an agent should load it. Name the tasks, the artifacts produced, and the requests that trigger it.
+license: MIT
+version: 0.1.0
 ---
 
 # Example Skill
