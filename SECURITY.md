@@ -53,9 +53,22 @@ and then report it — revocation is not something this project can do for you.
 
 ## What this project does and does not promise
 
-The checkers are heuristics. `scan_secrets.py` matches known credential shapes and
-will miss re-encoded, split, or novel formats; `validate-skills.py` checks structure,
-not intent. A clean run means *these specific checks found nothing*, and nothing more.
+The checkers are heuristics. `scan_secrets.py` has two layers and neither is complete:
+
+- **Known shapes** — provider prefixes (`ghp_`, `npm_`, `AKIA`, `xox*`, PEM blocks) and
+  the generic `secret = "…"` assignment. These catch what they name and nothing else.
+- **Entropy** — strings that look random but match no provider. This is the only layer
+  that can catch a custom token, and it is a guess: it will miss a secret that looks
+  like prose, and it refuses to guess at all in ambiguous shapes (hashes, paths,
+  identifiers, URLs) because a scanner that cries wolf gets bypassed with `--no-verify`.
+  Of the two failure modes, we chose silence over noise, deliberately.
+
+`validate-skills.py` checks structure, not intent. A clean run means *these specific
+checks found nothing*, and nothing more.
+
+`data/secret-allowlist.json` records suppressions, each with a reason of at least 15
+characters. A missing or thin reason fails the build. Provider prefixes cannot be
+allowlisted: an entry may explain a quoted example, never a live `ghp_` token.
 
 Nothing here has been executed against a hostile repository as part of a test suite.
 No skill is reviewed by a security professional before merge. Skills are read by

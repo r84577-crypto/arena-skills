@@ -138,6 +138,45 @@ on that page — that is the entire point of it.
    then `python3 scripts/validate-skills.py`. Both must be clean.
 8. If it ships a validator, add a test beside it and wire it into CI.
 
+## Before you commit
+
+One-time setup per clone — hooks are not cloned by git, and nothing enables this silently:
+
+```shell
+make hooks      # git config core.hooksPath .githooks
+```
+
+The pre-commit hook runs `scripts/scan_secrets.py --staged`, which reads the index rather
+than the working tree, so a `git add -p` hunk cannot slip past it. It takes about 200 ms
+on this repository because it only reads staged files.
+
+If it blocks you wrongly, the answer is an allowlist entry, not `--no-verify`:
+
+```json
+{
+  "allow": [
+    {
+      "path": "docs/example.md",
+      "rule": "high-entropy string",
+      "reason": "documented example token, replaced before publication"
+    }
+  ]
+}
+```
+
+| Field | Required | Meaning |
+| --- | --- | --- |
+| `path` | yes | Glob matched against the repository-relative path |
+| `rule` | no | Restrict the entry to one rule; omit to cover all suppressible rules |
+| `reason` | yes | At least 15 characters. An exception without an argument is not an exception |
+
+Only the heuristic rules are suppressible — `high-entropy string` and
+`generic bearer secret`. A provider prefix (`ghp_`, `AKIA`, PEM blocks) is never
+suppressible, because that is a live credential rather than a quotation.
+
+`git commit --no-verify` still exists. If you use it, say why in the commit message;
+the next person to read that history deserves to know.
+
 ## Vendoring third-party material
 
 Do not copy code or prose in silently. For each vendored item, record in
