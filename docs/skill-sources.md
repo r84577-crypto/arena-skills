@@ -60,8 +60,19 @@ Ordered by verified substance and engineering rigour, not popularity.
 | 8 | [`kepano/obsidian-skills`](https://github.com/kepano/obsidian-skills) | 6 | 50,413 | MIT | 2026-09-15 | 3 |
 | 9 | [`wshobson/agents`](https://github.com/wshobson/agents) | 185 | 41,994 | MIT | 2026-10-26 | 90 |
 | 10 | [`mvanhorn/last30days-skill`](https://github.com/mvanhorn/last30days-skill) | 1 | 65,926 | MIT | 2026-10-28 | 100+ |
+| 11 | [`mattpocock/skills`](https://github.com/mattpocock/skills) | 38 | 307,148 | MIT | 2026-10-30 | 100+ |
+| 12 | [`nextlevelbuilder/ui-ux-pro-max-skill`](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | 7 | 142,897 | MIT | 2026-10-26 | 79 |
+| 13 | [`JuliusBrussee/caveman`](https://github.com/JuliusBrussee/caveman) | 22 | 116,257 | Apache-2.0 | 2026-10-30 | 100+ |
+| 14 | [`ayghri/i-have-adhd`](https://github.com/ayghri/i-have-adhd) | 1 | 59,474 | MIT | 2026-10-19 | 100+ |
 
 `100+` means the 90-day commit query hit its pagination cap: at least 100 commits.
+
+**Ranks 11-14 come from a second measurement pass**, run on the same snapshot date against
+repositories that kept appearing in "best skills" lists but had not surfaced in the code-search
+sweep. They are ordered among themselves only; the ordering does not claim they outrank 1-10. Three
+of them show the duplication this page warns about: `ui-ux-pro-max` is 13 files for 7 skills,
+`caveman` is 28 for 22, `i-have-adhd` is 2 for 1. File counts published by a repository are usually
+file counts, not skill counts.
 
 ### What earned the top places
 
@@ -149,6 +160,7 @@ Every defect below was verified in the repository, not inferred.
 | [`travisvn/awesome-claude-skills`](https://github.com/travisvn/awesome-claude-skills) | 15,630 | No license, 2 contributors, last push 2026-04-28. Effectively abandoned. |
 | [`VoltAgent/awesome-agent-skills`](https://github.com/VoltAgent/awesome-agent-skills) | 36,596 | MIT, but the tree contains **0 `SKILL.md`** — a link list, nothing to install. |
 | [`affaan-m/ECC`](https://github.com/affaan-m/ECC) | 292,865 | 1,068 `SKILL.md` but only **317 distinct**; 518 are copies under `docs/`. |
+| [`multica-ai/andrej-karpathy-skills`](https://github.com/multica-ai/andrej-karpathy-skills) | 226,677 | **No license file**, and no commits since 2026-04-20. The most-starred entry in this table is one `SKILL.md` of behavioural rules: readable, unlicensed, unmaintained, and not redistributable. |
 | [`morluto/rea`](https://github.com/morluto/rea) | 408,964 | 5 `SKILL.md` against **5,983 scripts** plus `native/` and `patches/`. An application, not a skill. |
 | [`paperclipai/paperclip`](https://github.com/paperclipai/paperclip) | 108,752 | 85 skills, **7,914 scripts**, Docker runtime. An app. |
 | [`mksglu/context-mode`](https://github.com/mksglu/context-mode) | 32,875 | `NOASSERTION` license, **132 hook files**, pre-release tags only. |
@@ -176,8 +188,79 @@ AskUserQuestion, WebSearch` in front matter. Silence about tools is not a safety
 **Install project-scoped, not global.** `.agents/skills/` in a project beats `~/.agents/skills/`.
 Run agents that load third-party skills in a container or devcontainer, with a credential-free shell.
 
-**Pin everything.** `npx skills@VERSION add`, and `git checkout <sha>` for anything vendored. A plugin
-marketplace entry that tracks a branch is a moving supply chain.
+**The installer reports what you install, by default.** `skills@1.7.4` reads `DISABLE_TELEMETRY`
+and `DO_NOT_TRACK`; its own troubleshooting page states that anonymous usage data is sent, that
+repository and skill identifiers go with it, and that for non-GitHub sources identifiers may be sent
+because visibility cannot be checked. One env var turns off telemetry and the security-audit lookups
+together:
+
+```shell
+DISABLE_TELEMETRY=1 npx skills@1.7.4 add OWNER/REPO
+```
+
+This is not a vulnerability — it is a client behaving as documented. It belongs in a page about
+supply-chain risk because the tool that fetches executable instruction text is also the tool with an
+outbound channel.
+
+**Pinning means a lockfile here, not a flag.** `skills` has no `--pin`. What it has:
+
+| Mechanism | Command | Effect |
+| --- | --- | --- |
+| Lock file | `experimental_install` | Restores from `skills-lock.json`, which you commit and review |
+| Snapshot copy | `add --copy` | Copies files instead of symlinking them into agent directories |
+| Version pin | `npx skills@1.7.4` | Pins the installer, not the skill |
+
+That middle row matters more than it looks: the default is a **symlink** into the source checkout, so
+whoever updates that checkout changes what your agent loads, with no diff in your repository. `--copy`
+turns the install into a reviewable snapshot. Pick deliberately.
+
+**`--all` does not exist for `add`.** It exists for `remove`. The correct full install is:
+
+```shell
+npx skills@1.7.4 add OWNER/REPO -s '*' -a '*'
+```
+
+`-s/--skill` and `-a/--agent` both take `*`; a documented `--all` on `add` is a sign the instruction
+was written from memory rather than from `--help`.
+
+**Read before you install.** `-l/--list` lists what a repository offers, and
+`use OWNER/REPO@SKILL` renders one skill's text without installing anything:
+
+```shell
+npx skills@1.7.4 add OWNER/REPO -l
+npx skills@1.7.4 use OWNER/REPO@SKILL-NAME
+```
+
+**Pin anything vendored.** `git checkout <sha>` and record the SHA in `NOTICE.md`. A marketplace entry
+that tracks a branch is a moving supply chain — and so is a skill you symlinked last month.
+
+## Before you adopt a skill
+
+Popularity is not evidence of usefulness, and this page's own numbers are the proof: the
+most-starred repository in the avoid table above has 226,677 stars and one unlicensed file. Published
+benchmarks disagree with each other as well — some report large gains from curated skills, others
+find most engineering skills change nothing. The only measurement that applies to you is on your own
+tasks.
+
+A protocol that costs an afternoon:
+
+1. **Pick 5-10 real tasks** from your actual work, including at least two easy ones. Losses cluster
+   on easy tasks: an agent that already succeeds does not need a process imposed on it.
+2. **Record a baseline.** Same model, same settings, no skill. Note success, number of turns, and
+   rough token use.
+3. **Run the same tasks with the skill installed.** Change one variable.
+4. **Compare, and be willing to lose.** A skill that costs 40% more tokens for no quality change is a
+   negative, even if its README claims otherwise.
+5. **Repeat on a second model if you use one.** Skill effects transfer between models poorly, so a
+   win on one model is not a win on another.
+6. **Keep the decision per project.** A skill is a deployment decision, not a portable asset.
+
+Two failure modes to watch for specifically:
+
+- **Two methodologies at once.** Two process skills on the same change give the agent two sources of
+  truth about what to do next. Pick one per project.
+- **Silent scope creep.** A style skill that changes formatting should not also be shipping twenty
+  scripts and four hooks — one of the entries above does exactly that.
 
 ## Re-verifying this page
 

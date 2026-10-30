@@ -99,6 +99,11 @@ lands where the host actually looks. Project-scoped by default; nothing is overw
 Installing is only half of it: the host must be pointed at that directory. A public repository
 is not loaded automatically by any agent platform.
 
+For installing _third-party_ skills — the `skills` installer's telemetry default, why its installs are
+symlinks by default, and a protocol for testing a skill on your own tasks before adopting it — see
+[`docs/skill-sources.md`](../docs/skill-sources.md#security-notes) and
+[the adoption protocol](../docs/skill-sources.md#before-you-adopt-a-skill).
+
 ## Vendoring a third-party skill
 
 Do not copy files in silently. Either reference the upstream repository, or vendor it with:
