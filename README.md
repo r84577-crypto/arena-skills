@@ -16,7 +16,11 @@ The two halves are separate because a skill is an instruction set with a defined
 
 | Skill | What it does |
 | --- | --- |
-| (none yet) | Start from [`skills/_template/SKILL.md`](skills/_template/SKILL.md) |
+| [`repo-audit`](skills/repo-audit/SKILL.md) | Audits a repository for licensing, CI, link, metadata, and credential gaps |
+| [`skill-authoring`](skills/skill-authoring/SKILL.md) | Writes and repairs `SKILL.md` files so agents actually load them |
+
+`skills/index.json` is the generated manifest; `python3 scripts/validate-skills.py` enforces the
+contract and CI runs it on every pull request.
 
 ### GitHub Packages reference
 
@@ -36,10 +40,14 @@ The two halves are separate because a skill is an instruction set with a defined
 Copy or clone the skill's directory into wherever your agent discovers skills, for example:
 
 ```shell
-cp -R skills/<skill-name> "$HOME/.config/my-agent/skills/"
+./scripts/install-skills.sh --target claude-code --dry-run   # preview
+./scripts/install-skills.sh --target claude-code             # install
 ```
 
 A skill is self-contained: `SKILL.md` is the entry point, and any supporting files sit beside it.
+
+The installer writes to the directory your host actually scans, but installing is not loading —
+see [`skills/README.md`](skills/README.md#installing).
 
 ## Using the reference docs
 

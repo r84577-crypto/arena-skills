@@ -27,6 +27,10 @@ npx --yes markdownlint-cli2@0.13.0
 
 # Relative links, heading anchors, duplicate headings (offline, no deps)
 python3 scripts/check-links.py
+
+# Skill contract: front matter, name/directory match, index freshness
+python3 scripts/validate-skills.py
+python3 scripts/test-validate-skills.py
 ```
 
 Both must pass; CI runs exactly these. External URLs are checked in CI as a
@@ -113,7 +117,9 @@ on that page — that is the entire point of it.
 5. State the boundaries: what the skill may do unattended, what needs
    confirmation, what it must never do.
 6. Add it to the table in `skills/README.md`.
-7. If it ships a validator, add a test beside it and wire it into CI.
+7. Regenerate the manifest and validate: `python3 scripts/validate-skills.py --write-index`
+   then `python3 scripts/validate-skills.py`. Both must be clean.
+8. If it ships a validator, add a test beside it and wire it into CI.
 
 ## Vendoring third-party material
 
