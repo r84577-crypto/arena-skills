@@ -60,7 +60,9 @@ real limit at the host: permission prompts, a read-only checkout, or a container
 [`skills/skill-authoring/SKILL.md`](skills/skill-authoring/SKILL.md#boundaries).
 
 The installer writes to the directory your host actually scans, but installing is not loading —
-see [`skills/README.md`](skills/README.md#installing).
+see [`skills/README.md`](skills/README.md#installing). If your host has no skills directory at all
+(a hosted agent with connectors, for example), see
+[hosts without a skill loader](skills/README.md#hosts-without-a-skill-loader).
 
 ## Using the reference docs
 

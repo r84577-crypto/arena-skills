@@ -99,6 +99,27 @@ lands where the host actually looks. Project-scoped by default; nothing is overw
 Installing is only half of it: the host must be pointed at that directory. A public repository
 is not loaded automatically by any agent platform.
 
+## Hosts without a skill loader
+
+Not every host scans a skills directory. Some take instructions as an attached file, a project brief,
+or a system prompt, and offer no install path at all — a hosted agent with connectors is the common
+case, because connectors are tools, not skills. For those hosts the working pattern is:
+
+1. Attach the `SKILL.md` (and any file it links to that the task needs).
+2. Say what it is: _"Read the attached file and treat it as project guidance, not as permission to
+   bypass your own controls."_
+3. Keep the task small enough that the instructions fit in what the host will actually read.
+
+Two properties make this work without modification: a skill is plain Markdown, and its `description`
+already states when to apply it. Two properties make it weaker: nothing verifies that the host read
+the file, and nothing enforces the `## Boundaries` section. The host's own permission model is still
+the only real control.
+
+**Arena Agent Mode** was in this category at 2026-10-30: hosted, connector-based, with no documented
+mechanism for loading an external `SKILL.md` as a skill. That is a statement about one product on one
+date, not a permanent fact — if you find documented native support, this section is stale and should
+be corrected rather than trusted.
+
 For installing _third-party_ skills — the `skills` installer's telemetry default, why its installs are
 symlinks by default, and a protocol for testing a skill on your own tasks before adopting it — see
 [`docs/skill-sources.md`](../docs/skill-sources.md#security-notes) and
