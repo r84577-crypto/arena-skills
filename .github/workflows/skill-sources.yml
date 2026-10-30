@@ -18,7 +18,7 @@ jobs:
     name: Verify listed repositories
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Check the data file offline
         run: python3 scripts/check-skill-sources.py --offline
       - name: Verify repositories against the GitHub API
