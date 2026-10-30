@@ -1,8 +1,15 @@
 # Notices and attribution
 
-This repository contains material under two licenses. The MIT license in
-`LICENSE` covers the repository's original content. It does **not** relicense
-the GitHub Docs material vendored under `docs/`.
+This repository contains material under two licenses.
+
+- **MIT** ([`LICENSE`](LICENSE)) — the repository's original content: `README.md`,
+  `skills/`, `scripts/`, `data/`, `.github/`, and `docs/skill-sources.md`.
+- **CC BY 4.0** — the GitHub Docs material vendored under `docs/`, listed file by
+  file below. The MIT license does not relicense it.
+
+`LICENSE` deliberately contains the unmodified MIT text and nothing else, so that
+license-detection tooling reads this repository as MIT. The split is documented
+here instead.
 
 `docs/` contains both kinds of material, so check the file:
 
