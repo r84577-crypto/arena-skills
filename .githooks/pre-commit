@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Scan staged content for credential-shaped strings before the commit exists.
+#
+# Reads the index, not the working tree, so `git add -p` cannot smuggle in a
+# hunk you did not mean to commit. Fast by design: only staged files are read.
+#
+# Enable once per clone:  make hooks
+# Bypass for one commit:  git commit --no-verify   (and say why in the message)
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+exec python3 "$ROOT/scripts/scan_secrets.py" --staged
