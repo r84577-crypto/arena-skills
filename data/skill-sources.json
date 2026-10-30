@@ -170,6 +170,66 @@
       "commits_90d": 100,
       "release": "v0.4.1",
       "evidence": "2 SKILL.md -> 1 distinct; 20 scripts and 4 hooks for a skill whose stated effect is formatting only; 0 eval files"
+    },
+    {
+      "repo": "microsoft/skills",
+      "tier": "recommended",
+      "category": "vendor-official",
+      "skills_distinct": 211,
+      "stars": 3157,
+      "license": "MIT",
+      "last_push": "2026-10-30",
+      "commits_90d": 100,
+      "release": null,
+      "evidence": "213 SKILL.md -> 211 distinct; 245 scripts and 45 hooks; MIT; pushed the day of the snapshot"
+    },
+    {
+      "repo": "trailofbits/skills",
+      "tier": "recommended-with-caveat",
+      "category": "security-audit",
+      "skills_distinct": 97,
+      "stars": 7892,
+      "license": "CC-BY-SA-4.0",
+      "last_push": "2026-10-28",
+      "commits_90d": 97,
+      "release": null,
+      "evidence": "97 SKILL.md, all distinct; 269 scripts, 9 hooks; from a security firm that ships its own tooling - but CC BY-SA 4.0 is copyleft, not MIT"
+    },
+    {
+      "repo": "microsoft/azure-skills",
+      "tier": "recommended-with-caveat",
+      "category": "vendor-official",
+      "skills_distinct": 56,
+      "stars": 1603,
+      "license": "MIT",
+      "last_push": "2026-10-30",
+      "commits_90d": 70,
+      "release": "v1.2.108",
+      "evidence": "94 SKILL.md -> 56 distinct; 265 scripts and 48 hooks; most skills need Azure credentials or a live subscription"
+    },
+    {
+      "repo": "vercel-labs/agent-skills",
+      "tier": "recommended-with-caveat",
+      "category": "frontend",
+      "skills_distinct": 9,
+      "stars": 33249,
+      "license": "MIT stated in README, no LICENSE file",
+      "last_push": "2026-10-28",
+      "commits_90d": 23,
+      "release": null,
+      "evidence": "9 distinct skills; 164 scripts for 9 skills; the README ends with 'MIT' but the tree contains no LICENSE file, so scanners report unlicensed"
+    },
+    {
+      "repo": "DietrichGebert/ponytail",
+      "tier": "recommended-with-caveat",
+      "category": "code-quality",
+      "skills_distinct": 6,
+      "stars": 180769,
+      "license": "MIT",
+      "last_push": "2026-10-29",
+      "commits_90d": 100,
+      "release": "v5.3.3",
+      "evidence": "12 SKILL.md -> 6 distinct; 60 scripts and 18 hooks for 6 skills; 180,769 stars is the same order as the largest repositories here"
     }
   ],
   "avoid": [
@@ -212,6 +272,34 @@
     {
       "repo": "Leonxlnx/taste-skill",
       "reason": "Description claims skills plural; tree contains one"
+    },
+    {
+      "repo": "openai/skills",
+      "reason": "README states 'This repository is deprecated' and points at openai/plugins; 0 commits in 90 days; no root LICENSE, per-skill LICENSE.txt only"
+    },
+    {
+      "repo": "Graphify-Labs/graphify",
+      "reason": "139,242 stars, 602 scripts and 13 hooks, but 0 SKILL.md - an application, not a skill library"
+    },
+    {
+      "repo": "remotion-dev/skills",
+      "reason": "No license file anywhere and none stated; 12 usable skills you may read but not redistribute"
+    },
+    {
+      "repo": "pedronauck/skills",
+      "reason": "One LICENSE across 88 SKILL.md; the rest of the collection grants no rights"
+    },
+    {
+      "repo": "mouadja02/skills",
+      "reason": "NOASSERTION license, 12 stars, 539 scripts across 797 skills - unknown terms plus a large unvetted script surface"
+    },
+    {
+      "repo": "itsual/agent-skills-collection",
+      "reason": "503 SKILL.md but zero scripts, zero tests and 0 commits in 90 days (last push 2026-07-22) - a bulk dump, not a maintained library"
+    },
+    {
+      "repo": "skillcreatorai/Awesome-Agent-Skills",
+      "reason": "No license, 165 stars, last push 2025-12-18 - ten months stale"
     }
   ]
 }
