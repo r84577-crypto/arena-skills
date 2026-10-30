@@ -1,0 +1,41 @@
+# OS and editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Build output
+dist/
+build/
+bin/
+obj/
+*.nupkg
+*.snupkg
+
+# Environments and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Registry credentials. This repository contains no buildable project, so these
+# are not needed yet. If you add one, uncomment the relevant line — a credential
+# file must never be committed.
+# nuget.config
+# .npmrc
+# settings.xml
+# .gem/credentials
+# .bundle/config
+# .docker/config.json
+
+# Scratch
+.cache/
+tmp/
