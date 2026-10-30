@@ -122,12 +122,64 @@
       "commits_90d": 100,
       "release": "v3.31.0",
       "evidence": "Single skill with 432 scripts and explicit allowed-tools front matter"
+    },
+    {
+      "repo": "mattpocock/skills",
+      "tier": "recommended",
+      "category": "workflow-methodology",
+      "skills_distinct": 38,
+      "stars": 307148,
+      "license": "MIT",
+      "last_push": "2026-10-30",
+      "commits_90d": 100,
+      "release": "v1.3.2",
+      "evidence": "38 SKILL.md, 38 distinct - no harness duplication; 7 shipped scripts, 0 hooks; MIT; pushed the day of the snapshot"
+    },
+    {
+      "repo": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "tier": "recommended-with-caveat",
+      "category": "design-systems",
+      "skills_distinct": 7,
+      "stars": 142897,
+      "license": "MIT",
+      "last_push": "2026-10-26",
+      "commits_90d": 79,
+      "release": "v2.15.0",
+      "evidence": "13 SKILL.md collapsing to 7 distinct (6 names duplicated across harness dirs); 161 scripts for 7 skills; a design-decision library, not a workflow"
+    },
+    {
+      "repo": "JuliusBrussee/caveman",
+      "tier": "recommended-with-caveat",
+      "category": "cost-and-verbosity",
+      "skills_distinct": 22,
+      "stars": 116257,
+      "license": "Apache-2.0",
+      "last_push": "2026-10-30",
+      "commits_90d": 100,
+      "release": "v4.0.1",
+      "evidence": "28 SKILL.md -> 22 distinct; 567 scripts and 32 hook files, the largest executable surface measured here; author narrowed the token claims in v1.9.1"
+    },
+    {
+      "repo": "ayghri/i-have-adhd",
+      "tier": "recommended-with-caveat",
+      "category": "output-style",
+      "skills_distinct": 1,
+      "stars": 59474,
+      "license": "MIT",
+      "last_push": "2026-10-19",
+      "commits_90d": 100,
+      "release": "v0.4.1",
+      "evidence": "2 SKILL.md -> 1 distinct; 20 scripts and 4 hooks for a skill whose stated effect is formatting only; 0 eval files"
     }
   ],
   "avoid": [
     {
       "repo": "ComposioHQ/awesome-claude-skills",
       "reason": "No license file while vendoring 864 SKILL.md; 0 commits in 90 days"
+    },
+    {
+      "repo": "multica-ai/andrej-karpathy-skills",
+      "reason": "No license file and no commits since 2026-04-20, on 226,677 stars and a single SKILL.md. Read it, do not redistribute it"
     },
     {
       "repo": "travisvn/awesome-claude-skills",
