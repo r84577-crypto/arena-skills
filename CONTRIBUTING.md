@@ -162,3 +162,48 @@ Those pages are derived from GitHub Docs under CC BY 4.0. When you edit one:
 ## Pull requests
 
 Fill in the template. Keep one topic per pull request. CI must be green.
+
+## Branch protection
+
+`main` is protected by a ruleset, and the intended configuration is versioned in
+[`.github/ruleset-protect-main.json`](.github/ruleset-protect-main.json) so it is
+reviewable in a diff rather than living only in the settings UI.
+
+What it enforces:
+
+| Rule | Setting | Why |
+| --- | --- | --- |
+| Pull request required | 0 approvals | Keeps the gate without locking out a solo maintainer — GitHub does not let you approve your own PR |
+| Required status checks | Markdown lint · Relative links, anchors, images · Skill contract · No credentials committed · Verify listed repositories | The five jobs that run on a pull request |
+| Strict checks | on | The branch must be current with `main`, which is what surfaces duplicate-content conflicts after a squash merge |
+| Force pushes | blocked | History on `main` is append-only |
+| Deletion | blocked | — |
+
+Two checks are deliberately **not** required:
+
+- **External links (report only)** — `continue-on-error` by design; requiring a check
+  whose premise is "may fail harmlessly" teaches you to ignore red marks.
+- Anything that does not run on `pull_request`. A required check that never reports
+  blocks the pull request forever. `skill-sources.yml` was in that state until it
+  gained a `pull_request` trigger; keep that trigger if you touch the file.
+
+Apply the versioned configuration after editing it:
+
+```shell
+gh api --method PUT \
+  repos/$(gh repo view --json nameWithOwner -q .nameWithOwner)/rulesets/$(gh api repos/$(gh repo view --json nameWithOwner -q .nameWithOwner)/rulesets --jq '.[] | select(.name=="protect main") | .id') \
+  --input .github/ruleset-protect-main.json
+```
+
+Confirm what is actually applied — the file describes intent, the API describes reality:
+
+```shell
+gh api repos/$(gh repo view --json nameWithOwner -q .nameWithOwner)/rulesets \
+  --jq '.[] | select(.name=="protect main") | .id' | \
+  xargs -I{} gh api repos/$(gh repo view --json nameWithOwner -q .nameWithOwner)/rulesets/{} \
+  --jq '.rules[] | select(.type=="required_status_checks") | .parameters.required_status_checks[].context'
+```
+
+`CODEOWNERS` is documentation of ownership, not enforcement: it does nothing until
+*Require review from Code Owners* is switched on, and that switch must stay off while
+there is a single owner.
