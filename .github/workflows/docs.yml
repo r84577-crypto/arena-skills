@@ -13,7 +13,7 @@ jobs:
     name: Markdown lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: DavidAnson/markdownlint-cli2-action@v17
         with:
           globs: "**/*.md"
@@ -22,7 +22,7 @@ jobs:
     name: Relative links and anchors
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Check relative links, anchors, and duplicate headings
         run: python3 scripts/check-links.py
 
@@ -33,7 +33,7 @@ jobs:
     continue-on-error: true
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Check external URLs
         uses: lycheeverse/lychee-action@v2
         with:
@@ -47,7 +47,7 @@ jobs:
     name: No credential files tracked
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Fail if a credential-bearing file is tracked
         run: |
           set -euo pipefail
