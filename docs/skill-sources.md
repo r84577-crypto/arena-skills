@@ -64,6 +64,11 @@ Ordered by verified substance and engineering rigour, not popularity.
 | 12 | [`nextlevelbuilder/ui-ux-pro-max-skill`](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | 7 | 142,897 | MIT | 2026-10-26 | 79 |
 | 13 | [`JuliusBrussee/caveman`](https://github.com/JuliusBrussee/caveman) | 22 | 116,257 | Apache-2.0 | 2026-10-30 | 100+ |
 | 14 | [`ayghri/i-have-adhd`](https://github.com/ayghri/i-have-adhd) | 1 | 59,474 | MIT | 2026-10-19 | 100+ |
+| 15 | [`microsoft/skills`](https://github.com/microsoft/skills) | 211 | 3,157 | MIT | 2026-10-30 | 100+ |
+| 16 | [`trailofbits/skills`](https://github.com/trailofbits/skills) | 97 | 7,892 | CC-BY-SA-4.0 | 2026-10-28 | 97 |
+| 17 | [`microsoft/azure-skills`](https://github.com/microsoft/azure-skills) | 56 | 1,603 | MIT | 2026-10-30 | 70 |
+| 18 | [`vercel-labs/agent-skills`](https://github.com/vercel-labs/agent-skills) | 9 | 33,249 | MIT stated in README, no LICENSE file | 2026-10-28 | 23 |
+| 19 | [`DietrichGebert/ponytail`](https://github.com/DietrichGebert/ponytail) | 6 | 180,769 | MIT | 2026-10-29 | 100+ |
 
 `100+` means the 90-day commit query hit its pagination cap: at least 100 commits.
 
@@ -73,6 +78,11 @@ sweep. They are ordered among themselves only; the ordering does not claim they 
 of them show the duplication this page warns about: `ui-ux-pro-max` is 13 files for 7 skills,
 `caveman` is 28 for 22, `i-have-adhd` is 2 for 1. File counts published by a repository are usually
 file counts, not skill counts.
+
+**Ranks 15-19 come from a third pass**, over a "best of 2026" list that named twelve repositories.
+Five survived; seven are in the avoid table below. The survival rate is the finding: **the lists that
+recommend skill repositories do not check licenses or maintenance**, and four of those seven fail on
+licensing alone.
 
 ### What earned the top places
 
@@ -109,7 +119,7 @@ writes into the agent-specific path from the installer's matrix.
 | Software development | `addyosmani/agent-skills` | 25 | Only library with evals |
 | Workflow and methodology | `obra/superpowers` | 15 | v7 maturity, vendor-neutral |
 | Testing and QA | `addyosmani` (`test-driven-development`, `browser-testing-with-devtools`) | — | Enforces red-green-refactor |
-| Security (defensive) | `cloudflare/security-audit-skill` | 1 | Validators and tests |
+| Security (defensive) | [`trailofbits/skills`](https://github.com/trailofbits/skills) | 97 | Firm-published, CodeQL/Semgrep workflows — but **CC BY-SA 4.0**, not MIT |
 | Security (offensive) | [`usestrix/strix`](https://github.com/usestrix/strix) | 9 | Apache-2.0, benchmarks |
 | Research (ML) | [`Orchestra-Research/AI-Research-SKILLs`](https://github.com/Orchestra-Research/AI-Research-SKILLs) | 98 | Stale: 0 commits in 90 days |
 | Research (social and web) | `mvanhorn/last30days-skill` | 1 | Declares its tools |
@@ -166,6 +176,13 @@ Every defect below was verified in the repository, not inferred.
 | [`mksglu/context-mode`](https://github.com/mksglu/context-mode) | 32,875 | `NOASSERTION` license, **132 hook files**, pre-release tags only. |
 | [`msitarzewski/agency-agents`](https://github.com/msitarzewski/agency-agents) | 165,233 | **0 `SKILL.md`** — these are subagent personas, not skills. |
 | [`Leonxlnx/taste-skill`](https://github.com/Leonxlnx/taste-skill) | 105,744 | Description says skills (plural); the tree contains one. |
+| [`Graphify-Labs/graphify`](https://github.com/Graphify-Labs/graphify) | 139,242 | **0 `SKILL.md`** against 602 scripts and 13 hooks. Recommended as a "skill for large codebases"; it is an application. |
+| [`openai/skills`](https://github.com/openai/skills) | 28,413 | The README states **"This repository is deprecated"** and points at `openai/plugins`. 0 commits in 90 days; no root license, only per-skill `LICENSE.txt`. |
+| [`remotion-dev/skills`](https://github.com/remotion-dev/skills) | 5,908 | **No license file anywhere and no license statement.** Twelve usable skills you may read but not redistribute. |
+| [`pedronauck/skills`](https://github.com/pedronauck/skills) | 647 | One `LICENSE` across 88 `SKILL.md`; the rest of the collection grants no rights. |
+| [`skillcreatorai/Awesome-Agent-Skills`](https://github.com/skillcreatorai/Awesome-Agent-Skills) | 165 | No license, and last pushed 2025-12-18 — ten months stale. |
+| [`mouadja02/skills`](https://github.com/mouadja02/skills) | 12 | `NOASSERTION` license — terms nobody can read — plus 539 scripts across 797 skills. |
+| [`itsual/agent-skills-collection`](https://github.com/itsual/agent-skills-collection) | 6 | 503 `SKILL.md` and **zero scripts, zero tests**, 0 commits in 90 days. A bulk dump, not a library. |
 
 Also note: [`anthropics/claude-plugins-official`](https://github.com/anthropics/claude-plugins-official)
 (Apache-2.0, 33 skills) bundles `external_plugins/` for Discord, iMessage, and Telegram with
@@ -175,12 +192,15 @@ is what you are deliberately setting up.
 ## Security notes
 
 **Hooks execute; `SKILL.md` does not.** Before installing a repository, count its hooks. Verified at
-snapshot: 132 in `context-mode`, 38 in `awesome-copilot`, 9 in `addyosmani/agent-skills`, 6 in
-`superpowers`. Read every hook file and know what it runs.
+snapshot: 132 in `context-mode`, 48 in `microsoft/azure-skills`, 45 in `microsoft/skills`, 38 in
+`awesome-copilot`, 18 in `ponytail`, 13 in `graphify`, 9 in `addyosmani/agent-skills` and
+`trailofbits/skills`, 6 in `superpowers`. Read every hook file and know what it runs.
 
-**Script count is the surface area.** Measured: 5,983 in `rea`, 7,914 in `paperclip`, 831 in
-`alirezarezvani/claude-skills`, 776 in `K-Dense-AI`, 432 in `last30days`. A repository with zero
-scripts (`kepano/obsidian-skills`) is a different risk class from one with thousands.
+**Script count is the surface area.** Measured: 7,914 in `paperclip`, 5,983 in `rea`, 831 in
+`alirezarezvani/claude-skills`, 776 in `K-Dense-AI`, 602 in `graphify` (which ships **zero**
+`SKILL.md`), 539 in `mouadja02/skills`, 432 in `last30days`, 269 in `trailofbits/skills`. A repository
+with zero scripts (`kepano/obsidian-skills`, `itsual/agent-skills-collection`) is a different risk
+class from one with thousands.
 
 **Prefer skills that declare their tools.** `last30days` sets `allowed-tools: Bash, Read, Write,
 AskUserQuestion, WebSearch` in front matter. Silence about tools is not a safety claim.
