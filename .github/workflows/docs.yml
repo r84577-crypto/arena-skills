@@ -1,0 +1,60 @@
+name: docs
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  markdown:
+    name: Markdown lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DavidAnson/markdownlint-cli2-action@v17
+        with:
+          globs: "**/*.md"
+
+  links:
+    name: Relative links and anchors
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check relative links, anchors, and duplicate headings
+        run: python3 scripts/check-links.py
+
+  links-upstream:
+    name: External links (report only)
+    # Non-blocking on purpose: third-party documentation sites move, rate-limit
+    # CI, or reject bots. This surfaces rot without failing an unrelated change.
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check external URLs
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: >-
+            --no-progress --max-retries 2 --timeout 20
+            --accept 200,206,403,429
+            "./**/*.md"
+          fail: true
+
+  credentials:
+    name: No credential files tracked
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if a credential-bearing file is tracked
+        run: |
+          set -euo pipefail
+          forbidden='(^|/)(nuget\.config|\.npmrc|settings\.xml|\.gemrc|\.env)$'
+          forbidden="$forbidden"'|(^|/)\.gem/credentials$|(^|/)\.bundle/config$|\.(pem|key|p12|pfx)$'
+          if git ls-files | grep -Ei "$forbidden"; then
+            echo "::error::Credential-bearing file(s) are tracked. Remove them from git, rotate the token, then re-run."
+            exit 1
+          fi
+          echo "No credential-bearing files tracked."

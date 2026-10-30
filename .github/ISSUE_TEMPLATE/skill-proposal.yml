@@ -1,0 +1,49 @@
+name: Skill proposal
+description: Propose a new skill, or a change to an existing one.
+title: "[skill] "
+labels: ["skill"]
+body:
+  - type: input
+    id: name
+    attributes:
+      label: Skill name
+      description: Lowercase and hyphenated; it becomes the directory name.
+      placeholder: changelog-writer
+    validations:
+      required: true
+  - type: textarea
+    id: job
+    attributes:
+      label: What job does it do?
+      description: The task, and the artifact it produces.
+    validations:
+      required: true
+  - type: textarea
+    id: trigger
+    attributes:
+      label: When should an agent load it?
+      description: |
+        This becomes the `description` in the front matter, which is the only thing
+        an agent sees before deciding to load the skill. Be specific about triggers
+        and about when the skill should *not* apply.
+    validations:
+      required: true
+  - type: textarea
+    id: boundaries
+    attributes:
+      label: What may it do without asking?
+      description: Files it may write, commands it may run, actions that need confirmation.
+  - type: dropdown
+    id: origin
+    attributes:
+      label: Is this original or vendored?
+      options:
+        - Original
+        - Vendored from another project
+    validations:
+      required: true
+  - type: input
+    id: upstream
+    attributes:
+      label: If vendored, upstream URL and commit SHA
+      placeholder: https://github.com/owner/repo @ 1a2b3c4

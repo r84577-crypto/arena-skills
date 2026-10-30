@@ -1,0 +1,40 @@
+name: Documentation issue
+description: A broken link, an outdated command, or an instruction that does not work.
+title: "[docs] "
+labels: ["documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. If a command failed, include the exact error output —
+        it is usually enough to identify the cause.
+  - type: input
+    id: location
+    attributes:
+      label: Where is the problem?
+      placeholder: docs/nuget.md, around line 42
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead?
+      description: Paste the command and its output, redacting any token.
+      render: shell
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues for this problem
+          required: true
+        - label: I have removed any tokens or credentials from what I pasted
+          required: true
