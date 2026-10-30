@@ -40,8 +40,12 @@ jobs:
         run: |
           python3 scripts/test-check-links.py
           python3 scripts/test-validate-skills.py
+          python3 scripts/test-check-skill-sources.py
+          python3 scripts/test-install-skills.py
       - name: Validate every skill, including the template
         run: python3 scripts/validate-skills.py
+      - name: Check the page agrees with the data file
+        run: python3 scripts/check-skill-sources.py --offline --check-docs
 
   secrets:
     name: No credentials committed

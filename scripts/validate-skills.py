@@ -102,6 +102,24 @@ def parse_front_matter(body: str) -> dict[str, str]:
             continue
 
         if not value:
+            # A YAML list (`allowed-tools:` then `  - Read`) — collect the items.
+            # Without this the key vanishes and a skill that does declare its tool
+            # surface looks like one that does not.
+            items: list[str] = []
+            j = i + 1
+            while j < len(lines) and (not lines[j].strip() or lines[j][:1].isspace()):
+                item = re.match(r"^\s+-\s+(.*)$", lines[j])
+                if item:
+                    item_text = item.group(1).strip()
+                    if len(item_text) >= 2 and item_text[0] == item_text[-1] and item_text[0] in "\"'":
+                        item_text = item_text[1:-1]
+                    items.append(item_text)
+                j += 1
+            if items:
+                data[key] = "[" + ", ".join(items) + "]"
+                i = j
+                continue
+
             # A nested map (e.g. `metadata:`) — record one level as dotted keys so
             # `metadata.version` is not silently lost.
             nested: dict[str, str] = {}
@@ -160,6 +178,64 @@ def check_credentials(skill: str, directory: pathlib.Path) -> None:
             err(skill, f"possible {name} in {path.relative_to(directory)} ({excerpt})")
 
 
+# Tool names an agent host may expose. `allowed-tools` is advisory: a host is free
+# to ignore it, so this validates the *declaration* (shape, vocabulary, and that a
+# Boundaries section exists to explain it), never enforcement.
+TOOL_NAMES = {
+    "Read", "Write", "Edit", "MultiEdit", "NotebookEdit",
+    "Bash", "BashOutput", "KillBash", "Grep", "Glob",
+    "WebFetch", "WebSearch", "Task", "TodoWrite",
+}
+TOOL_RE = re.compile(r"^([A-Za-z][A-Za-z0-9]*)(\([^()]*\))?$")
+BOUNDARY_HEADING_RE = re.compile(r"^##\s+Boundar(y|ies)\s*$", re.M | re.I)
+
+
+def parse_allowed_tools(raw: str) -> list[str]:
+    """Split a front matter `allowed-tools` value into entries.
+
+    Both published forms occur in the wild: a comma-separated string
+    (`Read, Bash`) and a YAML list rendered by the parser as `[Read, Bash]`.
+    """
+    text = raw.strip()
+    if text.startswith("[") and text.endswith("]"):
+        text = text[1:-1]
+    return [part.strip().strip("'\"") for part in text.split(",") if part.strip()]
+
+
+def check_tool_boundaries(skill: str, fm: dict[str, str], doc: str) -> None:
+    """Validate the declared tool surface and the prose that explains it."""
+    raw = fm.get("allowed-tools", "")
+    if raw:
+        for tool in parse_allowed_tools(raw):
+            match = TOOL_RE.match(tool)
+            if not match:
+                err(skill, f"allowed-tools entry {tool!r} is not a tool name")
+                continue
+            if match.group(1) not in TOOL_NAMES:
+                warn(
+                    skill,
+                    f"allowed-tools names unknown tool {match.group(1)!r} "
+                    "(allowed-tools is advisory: the host may ignore it, and a typo "
+                    "reads as a deliberate restriction)",
+                )
+    else:
+        warn(skill, "no `allowed-tools` in front matter; the skill does not declare a tool surface")
+
+    if not BOUNDARY_HEADING_RE.search(doc):
+        err(skill, "no '## Boundaries' section: state what the skill may write, run, and never do")
+        return
+
+    start = BOUNDARY_HEADING_RE.search(doc)
+    tail = doc[start.end():]
+    next_heading = re.search(r"^##\s+\S", tail, re.M)
+    section = tail[: next_heading.start()] if next_heading else tail
+    bullets = [ln for ln in section.splitlines() if ln.strip().startswith(("-", "*"))]
+    if not bullets:
+        err(skill, "'## Boundaries' has no bullets; it must be specific enough to act on")
+    elif len(section.strip()) < 40:
+        warn(skill, "'## Boundaries' is very short; name files, commands, and refusals")
+
+
 def load_skill(directory: pathlib.Path, template: bool = False) -> dict[str, str] | None:
     name = directory.name
     skill_md = directory / "SKILL.md"
@@ -205,6 +281,8 @@ def load_skill(directory: pathlib.Path, template: bool = False) -> dict[str, str
 
     if "license" not in fm:
         warn(name, "no `license` in front matter (required if you vendor this skill)")
+
+    check_tool_boundaries(name, fm, doc)
 
     for md in sorted(directory.rglob("*.md")):
         check_links(name, md, md.read_text(encoding="utf-8"))

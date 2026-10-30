@@ -19,9 +19,13 @@ skills:
 tests:
 	$(PYTHON) scripts/test-check-links.py
 	$(PYTHON) scripts/test-validate-skills.py
+	$(PYTHON) scripts/test-check-skill-sources.py
+	$(PYTHON) scripts/test-install-skills.py
 
+# --check-docs also compares the page's ranked table with the data file, because
+# the page is what people read and nothing else noticed when the two disagreed.
 sources:
-	$(PYTHON) scripts/check-skill-sources.py --offline
+	$(PYTHON) scripts/check-skill-sources.py --offline --check-docs
 
 secrets:
 	$(PYTHON) scripts/scan_secrets.py
