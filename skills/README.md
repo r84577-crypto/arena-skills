@@ -22,8 +22,13 @@ The leading underscore on `_template` keeps it out of any glob that loads every 
 
 | Skill | Description | License | Version |
 | --- | --- | --- | --- |
+| [`agent-permissions`](agent-permissions/SKILL.md) | Reviews what an agent can reach, and what needs confirmation before it acts | MIT | 1.0.0 |
+| [`code-change`](code-change/SKILL.md) | Makes a narrow, tested change in an existing repository | MIT | 1.0.0 |
+| [`document-delivery`](document-delivery/SKILL.md) | Writes and reviews documents a specific reader can act on | MIT | 1.0.0 |
+| [`persistent-memory`](persistent-memory/SKILL.md) | Keeps project state in external memory files across sessions | MIT | 1.0.0 |
 | [`repo-audit`](repo-audit/SKILL.md) | Audits a repository for licensing, CI, link, metadata, and credential gaps | MIT | 1.0.0 |
 | [`skill-authoring`](skill-authoring/SKILL.md) | Writes and repairs `SKILL.md` files so agents actually load them | MIT | 1.0.0 |
+| [`source-verification`](source-verification/SKILL.md) | Checks claims against primary sources and labels what is unverified | MIT | 1.0.0 |
 
 `skills/index.json` is the machine-readable form of this table. It is generated, not
 hand-edited — see [Validating](#validating).
