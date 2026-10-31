@@ -64,6 +64,57 @@ Optional keys used by some tooling — document any you rely on in the skill its
 5. If the skill ships a validator, add a test beside it and wire it into CI.
 6. Add a row to the index above.
 
+## Recalling the right skill
+
+A skill that is never selected is dead weight, and selection is a retrieval problem. Every
+approach is a trade between context cost and accuracy, and the trade changes with library size:
+
+| Library size | What works | What stops working |
+| --- | --- | --- |
+| Up to ~10 | Expose every description; invoke explicitly when you know the name | — |
+| ~10-50 | Explicit trigger phrases plus local search over descriptions; install per project, not globally | Exposing the whole metadata catalogue starts to distract the agent from the right skill |
+| 50+ | Retrieval that reads the skill **body**, then reranks | Selecting on name and description alone |
+
+### Descriptions are necessary, not sufficient
+
+Progressive disclosure assumes metadata is enough to choose a skill. That assumption has now
+been measured, and it is false at scale:
+
+- Hiding the skill body from the routing step costs **29-44 percentage points** of Hit@1
+  (68.0% to 24.0% for the strongest pipeline). ([SkillRouter](https://arxiv.org/abs/2603.22455))
+- A reranker spends **91.7% of its attention on the body field**, not on name or description.
+- An encoder trained on metadata only scores 14 points below the same encoder given all fields
+  (51.3% vs 65.3%).
+- Even the strongest base encoder reaches only **64.0% Hit@1** over a pool of ~80,000 skills.
+- Selection accuracy degrades sharply past a critical library size rather than declining
+  smoothly. ([survey](https://arxiv.org/html/2602.12430v4))
+
+Two conclusions follow. Descriptions buy you candidate reduction, not the decision — so do not
+spend a week polishing prose expecting selection to improve. And static retrieval from the
+opening request misses capability needs that only appear mid-task; access has to be callable
+more than once. ([SkillBrowser](https://arxiv.org/html/2610.23554))
+
+### What this repository does about it
+
+1. **The validator enforces a retrieval cue** in every description (`Use when ...`). Necessary,
+   cheap, and not enough on its own.
+2. **Explicit invocation is the reliable path** when the name is known: `/skill-name`, or an
+   attached `SKILL.md` in a host without a loader. Zero retrieval error, zero context cost.
+3. **Install per project, not globally.** A smaller candidate set is the cheapest recall
+   improvement available, and it is the same move Arena makes for tools: load only what the
+   current task needs.
+
+### When to build more
+
+Do not build a search index before the candidate set justifies one — over two skills, it is
+ceremony that proves nothing.
+
+- **Past ~10 skills:** add explicit trigger phrases to the index and a small keyword search
+  (`make search q="…"`). Measure Hit@1 on 20-30 real queries from your own work before and
+  after; a change that does not move that number is not an improvement.
+- **Past ~50:** move to body-aware retrieve-then-rerank. At that size, description-only
+  selection is the documented failure mode, not a preference.
+
 ## Validating
 
 The contract above is enforced, not merely described. Two commands, both run in CI:
