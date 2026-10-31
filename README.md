@@ -16,8 +16,13 @@ The two halves are separate because a skill is an instruction set with a defined
 
 | Skill | What it does |
 | --- | --- |
+| [`agent-permissions`](skills/agent-permissions/SKILL.md) | Reviews what an agent can reach, least-privilege grants, and what needs confirmation |
+| [`code-change`](skills/code-change/SKILL.md) | Makes a narrow change in an existing repository, tests it, and reports what ran |
+| [`document-delivery`](skills/document-delivery/SKILL.md) | Writes and reviews guides, specs, and reports a reader can act on |
+| [`persistent-memory`](skills/persistent-memory/SKILL.md) | Keeps project state in six external memory files, with a retrieval test |
 | [`repo-audit`](skills/repo-audit/SKILL.md) | Audits a repository for licensing, CI, link, metadata, and credential gaps |
 | [`skill-authoring`](skills/skill-authoring/SKILL.md) | Writes and repairs `SKILL.md` files so agents actually load them |
+| [`source-verification`](skills/source-verification/SKILL.md) | Checks claims against primary sources and labels verified, inferred, and unknown |
 
 `skills/index.json` is the generated manifest; `python3 scripts/validate-skills.py` enforces the
 contract and CI runs it on every pull request.
@@ -34,6 +39,12 @@ contract and CI runs it on every pull request.
 | [Container registry](docs/container-registry.md) | `ghcr.io`, digests, labels, multi-arch publishing |
 | [Connecting a repository to a package](docs/connecting-a-repository.md) | Linking rules for every registry |
 | [Agent Skills: verified source guide](docs/skill-sources.md) | Which skill repositories are worth trusting, with measured metrics and the licensing traps |
+
+### Agent platform notes
+
+| Note | Covers |
+| --- | --- |
+| [Arena Agent Mode](docs/arena-agent-mode.md) | Verified setup for Arena.ai: what Agent Mode documents, what it does not, connector and GitHub limits, and why the leaderboard is not a model selector |
 
 ## Using a skill
 

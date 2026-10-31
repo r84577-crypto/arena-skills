@@ -2,6 +2,38 @@
   "generated_by": "scripts/validate-skills.py --write-index",
   "skills": [
     {
+      "name": "agent-permissions",
+      "path": "skills/agent-permissions",
+      "description": "Reviews and constrains what an AI agent can reach before it acts: which connectors and repositories are enabled, what scopes each grant carries, where secrets are exposed, which actions need confirmation, and how to revoke access afterwards. Use when connecting an agent to GitHub, a drive, mail, a calendar, a database, or a deployment platform; when an agent will write to shared or production systems; when a task involves untrusted content such as fetched pages, issues, or email; or when auditing an agent setup that already exists. Do not use for application security review or vulnerability scanning.",
+      "license": "MIT",
+      "version": "1.0.0",
+      "has_scripts": false
+    },
+    {
+      "name": "code-change",
+      "path": "skills/code-change",
+      "description": "Makes a change in an existing repository the way a careful maintainer would: read the tree and the conventions first, keep the patch narrow, run the project's own tests and linters, review the diff, and report what actually ran and what did not. Use when asked to fix a bug, add a feature, update dependencies, or clean up code in a repository that already exists. Use when a change must be proposed as a pull request rather than applied. Do not use for repository hygiene or licensing review, and do not use for greenfield code with no existing conventions to follow.",
+      "license": "MIT",
+      "version": "1.0.0",
+      "has_scripts": false
+    },
+    {
+      "name": "document-delivery",
+      "path": "skills/document-delivery",
+      "description": "Produces a document a specific reader can act on: audienced fixed first, an outline before prose, every claim sourced or marked as an assumption, and a final pass for structure, stale links, and statements the evidence does not support. Use when asked to write, restructure, translate, or review a guide, specification, report, README, or policy; when a draft reads as generated filler; or when a document will be handed to someone who cannot ask follow-up questions. Do not use for code comments, commit messages, or chat replies.",
+      "license": "MIT",
+      "version": "1.0.0",
+      "has_scripts": false
+    },
+    {
+      "name": "persistent-memory",
+      "path": "skills/persistent-memory",
+      "description": "Gives an agent durable project memory across sessions by reading and updating a small set of external Markdown files (profile, projects, decisions, tasks, session log, sources) instead of relying on chat history. Use when work spans more than one session, when a project has approved decisions that must not be silently reversed, when handing work to another agent or person, or when a hosted agent has no built-in cross-session memory. Use when asked to \"remember\" something for next time. Do not use for storing secrets, credentials, or personal data that the task does not require.",
+      "license": "MIT",
+      "version": "1.0.0",
+      "has_scripts": false
+    },
+    {
       "name": "repo-audit",
       "path": "skills/repo-audit",
       "description": "Audits a repository for the hygiene and trust gaps that block collaboration: missing or misdetected license and attribution, absent CI, dead internal links, stale metadata, credential-bearing files, and undocumented setup. Use when asked to review a repository, decide whether a project is safe to adopt or contribute to, prepare a repository for publication, or explain why a repository reads as abandoned. Use when a README promises more than the tree contains. Do not use for reviewing application code for bugs or vulnerabilities - use a code review or security audit skill for that.",
@@ -13,6 +45,14 @@
       "name": "skill-authoring",
       "path": "skills/skill-authoring",
       "description": "Writes and repairs SKILL.md files that agents actually discover and load: front matter whose name matches the directory, a description written for retrieval rather than for style, explicit tool boundaries, and validation against the repository checker before the change is proposed. Use when creating a new skill, turning existing documentation into a skill, fixing a skill that never loads or loads at the wrong time, or reviewing a contributed skill. Do not use for writing general documentation or READMEs.",
+      "license": "MIT",
+      "version": "1.0.0",
+      "has_scripts": false
+    },
+    {
+      "name": "source-verification",
+      "path": "skills/source-verification",
+      "description": "Checks claims against primary sources before they are repeated, and keeps the difference between what was verified, what was inferred, and what is unknown visible in the answer. Use when a task depends on current product behaviour, pricing, model names, limits, or rankings; when a claim came from a summary, a screenshot, or another model's output; when the user asks \"is that still true\"; or when writing documentation that will be trusted later. Do not use for questions answerable from the repository or from first principles.",
       "license": "MIT",
       "version": "1.0.0",
       "has_scripts": false
