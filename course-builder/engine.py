@@ -28,7 +28,7 @@ import metrics as _m
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FONT_DIR = os.path.join(HERE, "fonts")
-LOGO = os.path.join(FONT_DIR, "logo_t@3x.png")
+LOGO = os.path.join(FONT_DIR, "logo_t@2x.png")
 LOGO_MARK = os.path.join(FONT_DIR, "logo_mark_t@3x.png")
 _IMG_SIZE_CACHE = {}
 
@@ -47,12 +47,12 @@ M = 46.0
 CONTENT_W = SLIDE_W - 2 * M
 
 # ---------------------------------------------------------------- palette
-RED = "A12C33"
-RED_D = "7C1B24"
+RED = "A9262E"
+RED_D = "7E1B22"
 RED_T = "FBEAEC"
-GREEN = "117B48"
-GREEN_D = "0C5B35"
-GREEN_T = "E9F3EC"
+GREEN = "06814A"
+GREEN_D = "045F35"
+GREEN_T = "E6F2EA"
 INK = "182420"
 GRAY = "55645E"
 GRAY_L = "8A9791"

@@ -22,12 +22,12 @@ ROOT = os.path.abspath(os.path.join(HERE, ".."))
 OUT = os.path.join(ROOT, "دورة_إدخال_البيانات_ومعالجة_النصوص_معهد_الفاو")
 
 FONT = "Noto Sans Arabic"
-RED = RGBColor(0xA1, 0x2C, 0x33)
-GREEN = RGBColor(0x11, 0x7B, 0x48)
+RED = RGBColor(0xA9, 0x26, 0x2E)
+GREEN = RGBColor(0x06, 0x81, 0x4A)
 INK = RGBColor(0x18, 0x24, 0x20)
 GRAY = RGBColor(0x55, 0x64, 0x5E)
-HEAD_FILL = PatternFill("solid", fgColor="117B48")
-KEY_FILL = PatternFill("solid", fgColor="E9F3EC")
+HEAD_FILL = PatternFill("solid", fgColor="06814A")
+KEY_FILL = PatternFill("solid", fgColor="E6F2EA")
 THIN = Side(style="thin", color="DCE3DF")
 BORDER = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
 
@@ -133,7 +133,7 @@ def _logo(doc, width_cm=4.2):
     p = doc.add_paragraph()
     _rtl(p)
     p.paragraph_format.space_after = Pt(4)
-    p.add_run().add_picture(os.path.join(HERE, "fonts", "logo_t@3x.png"),
+    p.add_run().add_picture(os.path.join(HERE, "fonts", "logo_t@2x.png"),
                             width=Cm(width_cm))
     return p
 
@@ -554,7 +554,7 @@ def _sheet_setup(ws, rtl=True):
 
 def _title(ws, row, text, span=6):
     c = ws.cell(row=row, column=1, value=text)
-    c.font = Font(name=FONT, size=13, bold=True, color="A12C33")
+    c.font = Font(name=FONT, size=13, bold=True, color="A9262E")
     c.alignment = Alignment(horizontal="right", readingOrder=2)
 
 
@@ -616,9 +616,9 @@ def w22(outdir):
         _data(ws, r, list(row))
         r += 1
     ws.cell(row=r + 1, column=1, value="المطلوب: انتقل إلى الخلية A10 بصندوق الاسم، واكتب فيها كلمة «إضافي».").font = Font(
-        name=FONT, size=10, color="117B48")
+        name=FONT, size=10, color="06814A")
     ws.cell(row=r + 2, column=1, value="ثم انسخ النطاق A4:D9 إلى الورقة الثانية (Sheet2).").font = Font(
-        name=FONT, size=10, color="117B48")
+        name=FONT, size=10, color="06814A")
     _widths(ws, [18, 14, 12, 16])
     ws2 = wb.create_sheet("Sheet2")
     _sheet_setup(ws2)
@@ -672,7 +672,7 @@ def w23(outdir):
     ws.cell(row=hr, column=1).fill = PatternFill("solid", fgColor="FCF3E2")
     r = hr
     ws.cell(row=r + 2, column=1, value="المطلوب: 1) حوّل درجة نورة المكتوبة كنص إلى رقم. 2) نسب الحضور مكتوبة كأرقام عشرية؛ اضبطها على النسبة المئوية. 3) وسّع الأعمدة تلقائيًا.").font = Font(
-        name=FONT, size=10, color="117B48")
+        name=FONT, size=10, color="06814A")
     _widths(ws, [16, 12, 16, 16])
     wb.save(os.path.join(outdir, "ورقة_تدريب_المتدرب.xlsx"))
 
@@ -717,7 +717,7 @@ def w24(outdir):
     _data(ws, 10, ["المجموع", "", ""], fills={1: KEY_FILL})
     _data(ws, 11, ["المتوسط", "", ""], fills={1: KEY_FILL})
     ws.cell(row=14, column=1, value="تذكير: تبدأ كل صيغة بعلامة يساوي، وقد تكون فاصلة الوسائط (,) أو (;) بحسب منطقة الجهاز.").font = Font(
-        name=FONT, size=10, color="117B48")
+        name=FONT, size=10, color="06814A")
     _widths(ws, [18, 14, 20])
     wb.save(os.path.join(outdir, "ورقة_تدريب_المتدرب.xlsx"))
 
@@ -742,7 +742,7 @@ def w24_key(outdir):
     ws.cell(row=12, column=1, value="المجموع 400 والمتوسط 80 صحيحان لهذه القيم الوهمية. النسب: 22% و18.75% و23% و16% و20.25%.").font = Font(
         name=FONT, size=10, color="55645E")
     ws.cell(row=13, column=1, value="الصيغ مكتوبة في العمود الثالث كنص للعرض والنسخ؛ النتائج المحسوبة بجانبها هي المتوقعة من المتدربين.").font = Font(
-        name=FONT, size=10, color="117B48")
+        name=FONT, size=10, color="06814A")
     _widths(ws, [18, 22, 28])
     wb.save(os.path.join(outdir, "مفتاح_الإجابة_للمدرّب.xlsx"))
 
@@ -763,7 +763,7 @@ def w25(outdir):
         _data(ws, r, list(row))
         r += 1
     ws.cell(row=r + 1, column=1, value="أسئلة التفكير: من الأعلى؟ من الأدنى؟ كم متدربًا حقق 80 أو أكثر؟").font = Font(
-        name=FONT, size=10, color="117B48")
+        name=FONT, size=10, color="06814A")
     _widths(ws, [16, 14, 12])
     wb.save(os.path.join(outdir, "ورقة_تدريب_المتدرب.xlsx"))
 
@@ -809,7 +809,7 @@ def w26(outdir):
     _data(ws, 10, ["الإجمالي", "", "", ""], fills={1: KEY_FILL})
     _data(ws, 11, ["المتوسط اليومي", "", "", ""], fills={1: KEY_FILL})
     ws.cell(row=13, column=1, value="ثم أنشئ في Word صفحة تشرح المشروع: الهدف، البيانات، النتيجة (ثلاثة أسطر وثلاث نقاط).").font = Font(
-        name=FONT, size=10, color="117B48")
+        name=FONT, size=10, color="06814A")
     _widths(ws, [18, 14, 12, 12])
     wb.save(os.path.join(outdir, "ورقة_تدريب_المتدرب.xlsx"))
 

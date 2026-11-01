@@ -20,13 +20,13 @@ FONT_DIR = os.path.join(HERE, "fonts")
 ROOT = os.path.abspath(os.path.join(HERE, ".."))
 OUT = os.path.join(ROOT, "دورة_إدخال_البيانات_ومعالجة_النصوص_معهد_الفاو")
 
-RED = (0xA1 / 255, 0x2C / 255, 0x33 / 255)
-GREEN = (0x11 / 255, 0x7B / 255, 0x48 / 255)
+RED = (0xA9 / 255, 0x26 / 255, 0x2E / 255)
+GREEN = (0x06 / 255, 0x81 / 255, 0x4A / 255)
 INK = (0x18 / 255, 0x24 / 255, 0x20 / 255)
 GRAY = (0x55 / 255, 0x64 / 255, 0x5E / 255)
 LINE = (0xDC / 255, 0xE3 / 255, 0xDF / 255)
 PANEL = (0xF5 / 255, 0xF7 / 255, 0xF6 / 255)
-HEAD = (0x11 / 255, 0x7B / 255, 0x48 / 255)
+HEAD = (0x06 / 255, 0x81 / 255, 0x4A / 255)
 
 CSS = (
     "@font-face{font-family:ara;src:url(NotoSansArabic-Regular.ttf);font-weight:normal;}"
@@ -140,7 +140,7 @@ def _esc(s):
 
 def _logo_pdf(page, x, y, h=26.0):
     """Draw the official logo image (aspect kept) at top-right of the sheet."""
-    path = os.path.join(FONT_DIR, "logo_t@3x.png")
+    path = os.path.join(FONT_DIR, "logo_t@2x.png")
     from PIL import Image
     with Image.open(path) as im:
         w, hh = im.size

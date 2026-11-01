@@ -1052,11 +1052,33 @@ def s_wrap(d, wk, idx, total):
     return c
 
 
+def s_versions(d, wk, idx, total):
+    """Office version differences — same idea, different tab names."""
+    c, _ = d.new()
+    background(c)
+    v = wk["versions"]
+    y = header(c, v["title"], kicker="الإصدارات — نفس الإجراء بأسماء مختلفة",
+               sub=v.get("lead"), chip="تنبيه")
+    y = _table_visual(c, v, y)
+    if v.get("caption"):
+        ch = c.measure(v["caption"], CONTENT_W - 28, size=12) + 14
+        cy = min(y + 6, BOTTOM - ch)
+        c.rect(M, cy, CONTENT_W, ch, fill=PANEL2, radius=8)
+        c.text(M + 14, cy + 6, CONTENT_W - 28, ch - 8, v["caption"], size=12,
+               color=GRAY, line=1.35)
+        y = cy + ch
+    footer(c, f"الأسبوع {wk['no_ar']}", wk["topic_short"], idx, total)
+    c.notes(wk["notes"]["versions"])
+    _fit(c, BOTTOM)
+    return c
+
+
 LAYOUTS = {
     "cover": s_cover, "warmup": s_warmup, "outcomes": s_outcomes,
     "visual": s_visual, "steps": s_steps, "demo": s_demo, "guided": s_guided,
     "challenge": s_challenge, "mistakes": s_mistakes, "simulation": s_sim,
     "quiz": s_quiz, "zoom": s_zoom, "review": s_review, "wrap": s_wrap,
+    "versions": s_versions,
 }
 
 
