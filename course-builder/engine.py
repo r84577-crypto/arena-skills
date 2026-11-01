@@ -28,8 +28,18 @@ import metrics as _m
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FONT_DIR = os.path.join(HERE, "fonts")
-LOGO = os.path.join(FONT_DIR, "logo_full.png")
-LOGO_MARK = os.path.join(FONT_DIR, "logo_mark.png")
+LOGO = os.path.join(FONT_DIR, "logo_t@3x.png")
+LOGO_MARK = os.path.join(FONT_DIR, "logo_mark_t@3x.png")
+_IMG_SIZE_CACHE = {}
+
+
+def _img_size(path):
+    """Intrinsic pixel size of an image file (cached)."""
+    if path not in _IMG_SIZE_CACHE:
+        from PIL import Image
+        with Image.open(path) as im:
+            _IMG_SIZE_CACHE[path] = im.size
+    return _IMG_SIZE_CACHE[path]
 
 # ---------------------------------------------------------------- geometry
 SLIDE_W, SLIDE_H = 960.0, 540.0
@@ -37,12 +47,12 @@ M = 46.0
 CONTENT_W = SLIDE_W - 2 * M
 
 # ---------------------------------------------------------------- palette
-RED = "A8212D"
-RED_D = "7E1620"
+RED = "A12C33"
+RED_D = "7C1B24"
 RED_T = "FBEAEC"
-GREEN = "0B7A48"
-GREEN_D = "075C36"
-GREEN_T = "E7F3EC"
+GREEN = "117B48"
+GREEN_D = "0C5B35"
+GREEN_T = "E9F3EC"
 INK = "182420"
 GRAY = "55645E"
 GRAY_L = "8A9791"
@@ -227,6 +237,10 @@ class Canvas:
         tail.set("len", "med")
 
     def image(self, x, y, w, h, path):
+        """Draw an image, keeping its aspect ratio inside the given box."""
+        src = _img_size(path)
+        k = min(w / src[0], h / src[1])
+        w, h = src[0] * k, src[1] * k
         self.p.insert_image(pymupdf.Rect(x, y, x + w, y + h), filename=path)
         self.s.shapes.add_picture(path, Emu(int(x * 12700)), Emu(int(y * 12700)),
                                   Emu(int(w * 12700)), Emu(int(h * 12700)))
@@ -380,7 +394,9 @@ def background(c, fill=WHITE):
 
 def footer(c, week_label, topic, idx, total):
     c.line(M, 493, SLIDE_W - M, 493, LINE, 0.75)
-    c.text(M, 501, 360, 18, "معهد الفاو للتدريب — دورة إدخال البيانات ومعالجة النصوص",
+    c.image(M, 497, 22, 20, LOGO_MARK)
+    c.text(M + 28, 501, 320, 18,
+           "معهد الفاو للتدريب — دورة إدخال البيانات ومعالجة النصوص",
            size=9, color=GRAY_L, align="left")
     c.text(SLIDE_W / 2 - 60, 500, 120, 18, f"{idx} / {total}", size=9, color=GRAY_L,
            align="center")
@@ -416,4 +432,4 @@ def header(c, title, kicker=None, sub=None, chip=None, tone="red", logo=False,
     return ny + 18
 
 
-LOGO_FULL = os.path.join(FONT_DIR, "logo_full.png")
+LOGO_FULL = LOGO

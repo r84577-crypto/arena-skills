@@ -126,12 +126,12 @@ def s_cover(d, wk, idx, total):
     # left brand panel
     c.rect(0, 0, 300, SLIDE_H, fill=GREEN_D)
     c.rect(300, 0, 6, SLIDE_H, fill=RED)
-    c.rect(46, 46, 150, 112, fill=WHITE, radius=10)
-    c.image(56, 54, 130, 104, LOGO_FULL)
-    c.rect(52, 168, 130, 3, fill=WHITE, radius=2)
-    c.text(46, 186, 210, 120,
+    c.rect(44, 44, 176, 148, fill=WHITE, radius=10)
+    c.image(55, 57, 154, 122, LOGO_FULL)
+    c.rect(52, 206, 130, 3, fill=WHITE, radius=2)
+    c.text(46, 222, 210, 120,
            "معهد الفاو\nللتدريب\nبريدة — القصيم", size=17, color=WHITE, line=1.5)
-    c.text(46, 400, 210, 60, "دورة إدخال البيانات\nومعالجة النصوص", size=12.5,
+    c.text(46, 412, 210, 60, "دورة إدخال البيانات\nومعالجة النصوص", size=12.5,
            color="C9E3D6", line=1.55)
     # right content
     x0 = 340

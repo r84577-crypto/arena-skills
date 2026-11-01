@@ -17,16 +17,17 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.abspath(os.path.join(HERE, ".."))
 OUT = os.path.join(ROOT, "دورة_إدخال_البيانات_ومعالجة_النصوص_معهد_الفاو")
 
 FONT = "Noto Sans Arabic"
-RED = RGBColor(0xA8, 0x21, 0x2D)
-GREEN = RGBColor(0x0B, 0x7A, 0x48)
+RED = RGBColor(0xA1, 0x2C, 0x33)
+GREEN = RGBColor(0x11, 0x7B, 0x48)
 INK = RGBColor(0x18, 0x24, 0x20)
 GRAY = RGBColor(0x55, 0x64, 0x5E)
-HEAD_FILL = PatternFill("solid", fgColor="0B7A48")
-KEY_FILL = PatternFill("solid", fgColor="E7F3EC")
+HEAD_FILL = PatternFill("solid", fgColor="117B48")
+KEY_FILL = PatternFill("solid", fgColor="E9F3EC")
 THIN = Side(style="thin", color="DCE3DF")
 BORDER = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
 
@@ -127,6 +128,16 @@ def rule(doc):
     p.paragraph_format.space_after = Pt(4)
 
 
+def _logo(doc, width_cm=4.2):
+    """Official logo image in the document header (image only, never redrawn)."""
+    p = doc.add_paragraph()
+    _rtl(p)
+    p.paragraph_format.space_after = Pt(4)
+    p.add_run().add_picture(os.path.join(HERE, "fonts", "logo_t@3x.png"),
+                            width=Cm(width_cm))
+    return p
+
+
 def new_doc(header_line, title, subtitle):
     doc = Document()
     sec = doc.sections[0]
@@ -139,6 +150,7 @@ def new_doc(header_line, title, subtitle):
     sectPr = sec._sectPr
     if sectPr.find(qn("w:bidi")) is None:
         _insert_ordered(sectPr, "w:bidi", SECT_ORDER)
+    _logo(doc)
     para(doc, header_line, size=9.5, color=GRAY, after=2)
     para(doc, title, size=20, bold=True, color=RED, after=2)
     para(doc, subtitle, size=10.5, color=GRAY, after=8)
@@ -541,8 +553,9 @@ def _sheet_setup(ws, rtl=True):
 
 
 def _title(ws, row, text, span=6):
-    ws.cell(row=row, column=1, value=text).font = Font(name=FONT, size=13, bold=True, color="A8212D")
-    ws.cell(row=row, column=1).alignment = Alignment(horizontal="right", readingOrder=2)
+    c = ws.cell(row=row, column=1, value=text)
+    c.font = Font(name=FONT, size=13, bold=True, color="A12C33")
+    c.alignment = Alignment(horizontal="right", readingOrder=2)
 
 
 def _header(ws, row, values):
@@ -550,7 +563,8 @@ def _header(ws, row, values):
         c = ws.cell(row=row, column=i, value=v)
         c.font = Font(name=FONT, size=11, bold=True, color="FFFFFF")
         c.fill = HEAD_FILL
-        c.alignment = Alignment(horizontal="center", vertical="center", readingOrder=2)
+        c.alignment = Alignment(horizontal="center", vertical="center",
+                                readingOrder=2)
         c.border = BORDER
     ws.row_dimensions[row].height = 22
 
@@ -559,7 +573,8 @@ def _data(ws, row, values, fills=None):
     for i, v in enumerate(values, 1):
         c = ws.cell(row=row, column=i, value=v)
         c.font = Font(name=FONT, size=11, color="182420")
-        c.alignment = Alignment(horizontal="center", vertical="center", readingOrder=2)
+        c.alignment = Alignment(horizontal="center", vertical="center",
+                                readingOrder=2)
         c.border = BORDER
         if fills and i in fills:
             c.fill = fills[i]
@@ -568,6 +583,18 @@ def _data(ws, row, values, fills=None):
 def _widths(ws, widths):
     for i, w in enumerate(widths, 1):
         ws.column_dimensions[get_column_letter(i)].width = w
+
+
+def _put(ws, row, col, value, fmt=None):
+    """Write a cell value (with an optional number format).
+
+    Strings that start with "=" become real Excel formulas, so the trainer's key
+    file recalculates if the sample data is edited.
+    """
+    c = ws.cell(row=row, column=col, value=value)
+    if fmt:
+        c.number_format = fmt
+    return c
 
 
 def w22(outdir):
@@ -589,9 +616,9 @@ def w22(outdir):
         _data(ws, r, list(row))
         r += 1
     ws.cell(row=r + 1, column=1, value="المطلوب: انتقل إلى الخلية A10 بصندوق الاسم، واكتب فيها كلمة «إضافي».").font = Font(
-        name=FONT, size=10, color="0B7A48")
+        name=FONT, size=10, color="117B48")
     ws.cell(row=r + 2, column=1, value="ثم انسخ النطاق A4:D9 إلى الورقة الثانية (Sheet2).").font = Font(
-        name=FONT, size=10, color="0B7A48")
+        name=FONT, size=10, color="117B48")
     _widths(ws, [18, 14, 12, 16])
     ws2 = wb.create_sheet("Sheet2")
     _sheet_setup(ws2)
@@ -637,15 +664,15 @@ def w23(outdir):
         _data(ws, r, [name, deg, att, gr])
         ws.cell(row=r, column=3).number_format = "0.00"
         r += 1
-    # أخطاء مقصودة تحتاج تصحيحًا
-    _data(ws, r + 2, ["", "", "", ""])
-    ws.cell(row=r + 2, column=1, value="خلايا تحتاج تصحيحًا (محاكاة خطأ):")
-    ws.cell(row=r + 2, column=1).font = Font(name=FONT, size=10, bold=True, color="A8212D")
-    _data(ws, r + 3, ["نورة", " 81", 0.75, "جيد"])
-    ws.cell(row=r + 3, column=2).number_format = "@"
-    ws.cell(row=r + 3, column=2).alignment = Alignment(horizontal="left")
-    ws.cell(row=r + 5, column=1, value="المطلوب: 1) حوّل الدرجة النصية إلى رقم. 2) اضبط نسبة الحضور على النسبة المئوية. 3) وسّع الأعمدة تلقائيًا.").font = Font(
-        name=FONT, size=10, color="0B7A48")
+    # صف تدريب إضافي فيه خطأ إدخال مقصود (ضمن الجدول نفسه)
+    hr = r + 1
+    _data(ws, hr, ["نورة", " 81", 0.75, "جيد"])
+    ws.cell(row=hr, column=2).number_format = "@"
+    ws.cell(row=hr, column=2).alignment = Alignment(horizontal="left")
+    ws.cell(row=hr, column=1).fill = PatternFill("solid", fgColor="FCF3E2")
+    r = hr
+    ws.cell(row=r + 2, column=1, value="المطلوب: 1) حوّل درجة نورة المكتوبة كنص إلى رقم. 2) نسب الحضور مكتوبة كأرقام عشرية؛ اضبطها على النسبة المئوية. 3) وسّع الأعمدة تلقائيًا.").font = Font(
+        name=FONT, size=10, color="117B48")
     _widths(ws, [16, 12, 16, 16])
     wb.save(os.path.join(outdir, "ورقة_تدريب_المتدرب.xlsx"))
 
@@ -688,10 +715,9 @@ def w24(outdir):
         _data(ws, r, [n, d, ""])
         r += 1
     _data(ws, 10, ["المجموع", "", ""], fills={1: KEY_FILL})
-    _data(ws, 11, ["", "", ""])
-    _data(ws, 12, ["المتوسط", "", ""], fills={1: KEY_FILL})
+    _data(ws, 11, ["المتوسط", "", ""], fills={1: KEY_FILL})
     ws.cell(row=14, column=1, value="تذكير: تبدأ كل صيغة بعلامة يساوي، وقد تكون فاصلة الوسائط (,) أو (;) بحسب منطقة الجهاز.").font = Font(
-        name=FONT, size=10, color="0B7A48")
+        name=FONT, size=10, color="117B48")
     _widths(ws, [18, 14, 20])
     wb.save(os.path.join(outdir, "ورقة_تدريب_المتدرب.xlsx"))
 
@@ -707,13 +733,16 @@ def w24_key(outdir):
     degs = [88, 75, 92, 64, 81]
     r = 4
     for n, d in zip(names, degs):
-        _data(ws, r, [n, d, ""])
+        _data(ws, r, [n, d, "B%d/SUM($B$4:$B$8)" % r])
+        ws.cell(row=r, column=3).alignment = Alignment(
+            horizontal="center", vertical="center", readingOrder=2)
         r += 1
-    _data(ws, 4, ["خالد", 88, "=B4/SUM($B$4:$B$8)"], fills={3: KEY_FILL})
-    _data(ws, 9, ["المجموع", "=SUM(B4:B8)", "400"], fills={1: KEY_FILL, 2: KEY_FILL, 3: KEY_FILL})
-    _data(ws, 10, ["المتوسط", "=AVERAGE(B4:B8)", "80"], fills={1: KEY_FILL, 2: KEY_FILL, 3: KEY_FILL})
-    ws.cell(row=12, column=1, value="ملاحظة: النتائج 400 و80 صحيحة لهذه القيم الوهمية؛ اطلب من المتدرب تفسير النطاق المستخدم.").font = Font(
+    _data(ws, 9, ["المجموع", 400, "SUM(B4:B8)"], fills={1: KEY_FILL, 3: KEY_FILL})
+    _data(ws, 10, ["المتوسط", 80, "AVERAGE(B4:B8)"], fills={1: KEY_FILL, 3: KEY_FILL})
+    ws.cell(row=12, column=1, value="المجموع 400 والمتوسط 80 صحيحان لهذه القيم الوهمية. النسب: 22% و18.75% و23% و16% و20.25%.").font = Font(
         name=FONT, size=10, color="55645E")
+    ws.cell(row=13, column=1, value="الصيغ مكتوبة في العمود الثالث كنص للعرض والنسخ؛ النتائج المحسوبة بجانبها هي المتوقعة من المتدربين.").font = Font(
+        name=FONT, size=10, color="117B48")
     _widths(ws, [18, 22, 28])
     wb.save(os.path.join(outdir, "مفتاح_الإجابة_للمدرّب.xlsx"))
 
@@ -734,7 +763,7 @@ def w25(outdir):
         _data(ws, r, list(row))
         r += 1
     ws.cell(row=r + 1, column=1, value="أسئلة التفكير: من الأعلى؟ من الأدنى؟ كم متدربًا حقق 80 أو أكثر؟").font = Font(
-        name=FONT, size=10, color="0B7A48")
+        name=FONT, size=10, color="117B48")
     _widths(ws, [16, 14, 12])
     wb.save(os.path.join(outdir, "ورقة_تدريب_المتدرب.xlsx"))
 
@@ -780,7 +809,7 @@ def w26(outdir):
     _data(ws, 10, ["الإجمالي", "", "", ""], fills={1: KEY_FILL})
     _data(ws, 11, ["المتوسط اليومي", "", "", ""], fills={1: KEY_FILL})
     ws.cell(row=13, column=1, value="ثم أنشئ في Word صفحة تشرح المشروع: الهدف، البيانات، النتيجة (ثلاثة أسطر وثلاث نقاط).").font = Font(
-        name=FONT, size=10, color="0B7A48")
+        name=FONT, size=10, color="117B48")
     _widths(ws, [18, 14, 12, 12])
     wb.save(os.path.join(outdir, "ورقة_تدريب_المتدرب.xlsx"))
 

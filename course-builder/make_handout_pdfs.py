@@ -20,13 +20,13 @@ FONT_DIR = os.path.join(HERE, "fonts")
 ROOT = os.path.abspath(os.path.join(HERE, ".."))
 OUT = os.path.join(ROOT, "دورة_إدخال_البيانات_ومعالجة_النصوص_معهد_الفاو")
 
-RED = (0xA8 / 255, 0x21 / 255, 0x2D / 255)
-GREEN = (0x0B / 255, 0x7A / 255, 0x48 / 255)
+RED = (0xA1 / 255, 0x2C / 255, 0x33 / 255)
+GREEN = (0x11 / 255, 0x7B / 255, 0x48 / 255)
 INK = (0x18 / 255, 0x24 / 255, 0x20 / 255)
 GRAY = (0x55 / 255, 0x64 / 255, 0x5E / 255)
 LINE = (0xDC / 255, 0xE3 / 255, 0xDF / 255)
 PANEL = (0xF5 / 255, 0xF7 / 255, 0xF6 / 255)
-HEAD = (0x0B / 255, 0x7A / 255, 0x48 / 255)
+HEAD = (0x11 / 255, 0x7B / 255, 0x48 / 255)
 
 CSS = (
     "@font-face{font-family:ara;src:url(NotoSansArabic-Regular.ttf);font-weight:normal;}"
@@ -60,7 +60,15 @@ class Page:
         self.page = self.doc.new_page(width=PW, height=PH)
         self.page.draw_rect(pymupdf.Rect(0, 0, PW, 4), color=None, fill=RED)
         self.page.draw_rect(pymupdf.Rect(0, 4, PW, 7), color=None, fill=GREEN)
-        self.y = MT
+        _logo_pdf(self.page, PW - MR, MT - 8, 34)
+        a = self.arch
+        div = ('<div style="font-size:8.6pt;line-height:1.5;color:#55645E">'
+               'معهد الفاو — بريدة، القصيم</div>')
+        self.page.insert_htmlbox(pymupdf.Rect(ML, MT + 34, PW - MR, MT + 48),
+                                 div, css=CSS, archive=a, scale_low=0)
+        self.page.draw_line(pymupdf.Point(ML, MT + 50), pymupdf.Point(PW - MR, MT + 50),
+                            color=LINE, width=0.8)
+        self.y = MT + 58
 
     def need(self, h):
         if self.y + h > PH - MB:
@@ -91,7 +99,8 @@ class Page:
         self.y += 10
 
     # ---------------------------------------------------------------- table
-    def table(self, rows):
+    def table(self, rows, header=True):
+        """RTL table; header=False for data blocks that continue on a sheet."""
         if not rows:
             return
         ncol = max(len(r) for r in rows)
@@ -100,7 +109,8 @@ class Page:
         self.need(rh * len(rows) + 10)
         for ri, row in enumerate(rows):
             x = PW - MR                     # RTL: first column on the right
-            fill = HEAD if ri == 0 else (PANEL if ri % 2 == 0 else (1, 1, 1))
+            is_head = header and ri == 0
+            fill = HEAD if is_head else (PANEL if ri % 2 == 0 else (1, 1, 1))
             self.page.draw_rect(pymupdf.Rect(ML, self.y, PW - MR, self.y + rh),
                                 color=None, fill=fill)
             for ci in range(ncol):
@@ -109,8 +119,8 @@ class Page:
                 self.page.draw_line(pymupdf.Point(x0, self.y), pymupdf.Point(x0, self.y + rh),
                                     color=LINE, width=0.6)
                 style = ("font-size:10pt;line-height:1.3;color:#%s;%s"
-                         % ("FFFFFF" if ri == 0 else _hex(INK),
-                            "font-weight:bold;" if ri == 0 else ""))
+                         % ("FFFFFF" if is_head else _hex(INK),
+                            "font-weight:bold;" if is_head else ""))
                 div = '<div style="%s">%s</div>' % (style, _esc(str(val)))
                 self.page.insert_htmlbox(
                     pymupdf.Rect(x0 + 3, self.y + 3, x0 + colw - 3, self.y + rh - 2),
@@ -126,6 +136,17 @@ class Page:
 
 def _esc(s):
     return (s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
+
+
+def _logo_pdf(page, x, y, h=26.0):
+    """Draw the official logo image (aspect kept) at top-right of the sheet."""
+    path = os.path.join(FONT_DIR, "logo_t@3x.png")
+    from PIL import Image
+    with Image.open(path) as im:
+        w, hh = im.size
+    w = h * w / hh
+    page.insert_image(pymupdf.Rect(x - w, y, x, y + h), filename=path)
+    return w
 
 
 def _iter_blocks(doc):
@@ -169,8 +190,7 @@ def render(docx_path, pdf_path):
                 color = tuple(int(c[i:i + 2], 16) / 255 for i in (0, 2, 4))
             ltr = (r0.font.name == "DejaVu Sans")
         if head_done == 0:
-            pg.text(txt, size=9.2, color=GRAY, space_after=1)
-            head_done += 1
+            head_done += 1        # already drawn by the page header stamp
             continue
         if head_done == 1:
             pg.text(txt, size=17, bold=True, color=RED, space_after=1)
@@ -192,6 +212,163 @@ def render(docx_path, pdf_path):
 
 
 # ---------------------------------------------------------------- xlsx preview
+def _is_meta(text):
+    """Sheet titles / instructions that the PDF header already renders."""
+    t = text.strip().lstrip("\u200f\u2066\u2069(\u00a0 ")
+    t = t.replace("\u200b", "")
+    return ("الأسبوع" in t[:20]) or ("معهد الفاو" in t[:20])
+
+
+def render_xlsx(xlsx_path, pdf_path, title, subtitle):
+    """معاينة مطبوعة لورقة Excel: أسطر الشرح نصًّا، وصفوف البيانات جدولًا،
+    مع الحفاظ على ترتيبها الأصلي في الورقة."""
+    from openpyxl import load_workbook
+    wb = load_workbook(xlsx_path)
+    archive = pymupdf.Archive(FONT_DIR)
+    pdf = pymupdf.open()
+    for ws in wb.worksheets:
+        pg = Page(pdf, archive)
+        pg.text(title, size=17, bold=True, color=RED, space_after=1)
+        pg.text(subtitle + " · ورقة: " + ws.title, size=10, color=GRAY,
+                space_after=3)
+        pg.rule()
+
+        rows = []
+        for r in ws.iter_rows(values_only=True):
+            cells = ["" if v is None else (("%g" % v) if isinstance(v, float) else str(v))
+                     for v in r]
+            while cells and cells[-1] == "":
+                cells.pop()
+            rows.append(cells)
+
+        ncol = max([len(c) for c in rows if any(c)] or [3])
+        ncol = max(3, min(6, ncol))
+
+        def is_row(cells):
+            ne = [c for c in cells if c]
+            if len(ne) >= 2:
+                return True
+            if len(ne) == 1 and cells[0] == ne[0] and len(ne[0]) <= 22:
+                return not ne[0].startswith("المطلوب")
+            return False
+
+        block = []
+        first_block = True
+
+        def flush():
+            nonlocal block, first_block
+            if block:
+                pg.table(list(block), header=first_block)
+                first_block = False
+                block = []
+
+        blank = 0
+        for cells in rows:
+            ne = [c for c in cells if c]
+            if not ne:
+                blank += 1
+                if block and blank <= 1:
+                    block.append([""] * ncol)
+                continue
+            blank = 0
+            first = ne[0]
+            if _is_meta(first):
+                continue
+            if is_row(cells) and not first.endswith(":"):
+                block.append(cells + [""] * (ncol - len(cells)))
+            else:
+                flush()
+                pg.text(" ".join(ne), size=10,
+                        color=RED if first.endswith(":") else GRAY, space_after=3)
+        flush()
+    pdf.subset_fonts()
+    pdf.save(pdf_path, garbage=4, deflate=True, clean=True)
+    pdf.close()
+    return pdf_path
+
+
+# ---------------------------------------------------------------- xlsx preview
+def _is_meta(text):
+    """Sheet titles / instructions that the PDF header already renders."""
+    t = text.strip().lstrip("\u200f\u2066\u2069(\u00a0 ")
+    t = t.replace("\u200b", "")
+    return ("الأسبوع" in t[:20]) or ("معهد الفاو" in t[:20])
+
+
+def render_xlsx(xlsx_path, pdf_path, title, subtitle):
+    """معاينة مطبوعة لورقة Excel: أسطر الشرح نصًّا، وصفوف البيانات جدولًا،
+    مع الحفاظ على ترتيبها الأصلي في الورقة."""
+    from openpyxl import load_workbook
+    wb = load_workbook(xlsx_path)
+    archive = pymupdf.Archive(FONT_DIR)
+    pdf = pymupdf.open()
+    for ws in wb.worksheets:
+        pg = Page(pdf, archive)
+        pg.text(title, size=17, bold=True, color=RED, space_after=1)
+        pg.text(subtitle + " · ورقة: " + ws.title, size=10, color=GRAY, space_after=3)
+        pg.rule()
+
+        rows = []
+        for r in ws.iter_rows(values_only=True):
+            cells = ["" if v is None else (("%g" % v) if isinstance(v, float) else str(v))
+                     for v in r]
+            while cells and cells[-1] == "":
+                cells.pop()
+            rows.append(cells)
+
+        ncol = max((len([c for c in r if c]) and len(r) for r in rows), default=3)
+        ncol = max(3, min(6, ncol))
+
+        def is_row(cells):
+            ne = [c for c in cells if c]
+            if len(ne) >= 2:
+                return True
+            if len(ne) == 1 and cells[0] == ne[0] and len(ne[0]) <= 22:
+                return not ne[0].startswith("المطلوب")
+            return False
+
+        block, blank = [], 0
+        state = {"first": True}
+
+        def flush():
+            nonlocal block
+            if block:
+                pg.table(list(block), header=state["first"])
+                state["first"] = False
+                block = []
+
+        for cells in rows:
+            ne = [c for c in cells if c]
+            if not ne:
+                blank += 1
+                if block and blank <= 1:
+                    block.append([""] * ncol)
+                continue
+            blank = 0
+            first = ne[0]
+            if _is_meta(first):
+                continue
+            if is_row(cells) and not (len(ne) == 1 and first.endswith(":")):
+                block.append(cells + [""] * (ncol - len(cells)))
+            else:
+                flush()
+                pg.text(" ".join(ne), size=10,
+                        color=RED if first.endswith(":") else GRAY, space_after=3)
+        flush()
+    pdf.subset_fonts()
+    pdf.save(pdf_path, garbage=4, deflate=True, clean=True)
+    pdf.close()
+    return pdf_path
+
+
+# ---------------------------------------------------------------- xlsx preview
+def _is_meta(text):
+    """Sheet titles / instructions that the PDF header already renders."""
+    t = text.strip().lstrip("\u200f\u2066\u2069(\u00a0 ")
+    t = t.replace("\u200b", "")
+    return ("الأسبوع" in t[:20]) or ("معهد الفاو" in t[:20])
+
+
 def render_xlsx(xlsx_path, pdf_path, title, subtitle):
     """معاينة مطبوعة لورقة Excel: أسطر الشرح كنص، والبيانات كجدول."""
     from openpyxl import load_workbook
@@ -222,7 +399,7 @@ def render_xlsx(xlsx_path, pdf_path, title, subtitle):
         for i, r in enumerate(grid):
             ne = [c for c in r if c]
             if head is not None and i < head:
-                if not r[0].startswith("الأسبوع"):
+                if not _is_meta(r[0]):
                     pre.append(" ".join(ne))
                 continue
             short = max((len(c) for c in ne), default=0)
@@ -236,7 +413,7 @@ def render_xlsx(xlsx_path, pdf_path, title, subtitle):
                 table_rows.append(r)
                 started = True
             else:
-                if not r[0].startswith("الأسبوع"):
+                if not _is_meta(r[0]):
                     (post if started else pre).append(" ".join(ne))
         for n in pre:
             pg.text(n, size=10, color=GRAY, space_after=3)
@@ -250,49 +427,11 @@ def render_xlsx(xlsx_path, pdf_path, title, subtitle):
 
 
 # ---------------------------------------------------------------- xlsx preview
-def render_xlsx(xlsx_path, pdf_path, title, subtitle):
-    """معاينة مطبوعة لورقة Excel: أسطر الشرح كنص، والبيانات كجدول."""
-    from openpyxl import load_workbook
-    wb = load_workbook(xlsx_path)
-    archive = pymupdf.Archive(FONT_DIR)
-    pdf = pymupdf.open()
-    for ws in wb.worksheets:
-        pg = Page(pdf, archive)
-        pg.text("معهد الفاو — بريدة، القصيم · دورة إدخال البيانات ومعالجة النصوص",
-                size=9.2, color=GRAY, space_after=1)
-        pg.text(title, size=17, bold=True, color=RED, space_after=1)
-        pg.text(subtitle + " · ورقة: " + ws.title, size=10, color=GRAY, space_after=3)
-        pg.rule()
-        grid, notes = [], []
-        for r in ws.iter_rows(values_only=True):
-            cells = ["" if v is None else (("%g" % v) if isinstance(v, float) else str(v))
-                     for v in r]
-            while cells and cells[-1] == "":
-                cells.pop()
-            if not cells:
-                continue
-            nonempty = [c for c in cells if c != ""]
-            grid.append(cells)
-        head = next((i for i, r in enumerate(grid) if len([c for c in r if c]) >= 3), None)
-        table_rows, notes, in_table = [], [], False
-        for i, r in enumerate(grid):
-            ne = [c for c in r if c]
-            if head is not None and i < head:
-                notes.append(" ".join(ne))
-                continue
-            short = max((len(c) for c in ne), default=0)
-            if len(ne) >= 2 or (len(ne) == 1 and r[0] == ne[0] and short <= 24):
-                table_rows.append(r)
-                in_table = True
-            else:
-                notes.append(" ".join(ne))
-        pg.table(table_rows)
-        for n in notes:
-            pg.text(n, size=10, color=GRAY, space_after=3)
-    pdf.subset_fonts()
-    pdf.save(pdf_path, garbage=4, deflate=True, clean=True)
-    pdf.close()
-    return pdf_path
+def _is_meta(text):
+    """Sheet titles / instructions that the PDF header already renders."""
+    t = text.strip().lstrip("\u200f\u2066\u2069(\u00a0 ")
+    t = t.replace("\u200b", "")
+    return ("الأسبوع" in t[:20]) or ("معهد الفاو" in t[:20])
 
 
 TITLES = {
