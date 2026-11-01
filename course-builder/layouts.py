@@ -2,6 +2,7 @@
 """Slide layouts. Every layout is shared by the PPTX and the PDF backends."""
 from __future__ import annotations
 
+import exam
 from engine import (
     Canvas, L, M, SLIDE_W, SLIDE_H, CONTENT_W, RED, RED_D, RED_T, GREEN, GREEN_D,
     GREEN_T, INK, GRAY, GRAY_L, LINE, PANEL, PANEL2, WHITE, AMBER_T, AMBER,
@@ -1052,6 +1053,111 @@ def s_wrap(d, wk, idx, total):
     return c
 
 
+# ---- official exam criteria ---------------------------------------------
+def _typing_card(c, x, y, w, h):
+    """Left card: the four typing thresholds as number tiles."""
+    t = exam.TYPING
+    c.rect(x, y, w, h, fill=PANEL, radius=12)
+    c.rect(x, y, w, 5, fill=RED, radius=2)
+    c.text(x + 12, y + 14, w - 24, 22, "اختبار الطباعة (الكتابة السريعة)",
+           size=13.5, bold=True, color=RED_D, align="right", line=1.2)
+    tiles = [("170", "كلمة على الأقل", "طول النص"),
+             ("10", "دقائق", "مدة الاختبار"),
+             ("10", "كلمة/دقيقة", "أقل سرعة"),
+             ("95%", "دقة", "أقل دقة")]
+    tw = (w - 24 - 3 * 10) / 4
+    ty = y + 42
+    th = h - 42 - 18
+    for i, (big, mid, small) in enumerate(tiles):
+        tx = x + w - 12 - tw - i * (tw + 10)
+        c.rect(tx, ty, tw, th, fill=WHITE, stroke=LINE, width=0.8, radius=9)
+        c.text(tx, ty + th * 0.10, tw, 34, big, size=24, bold=True,
+               color=GREEN_D, align="center", line=1.0, wrap=False)
+        c.text(tx + 2, ty + th * 0.10 + 34, tw - 4, 30, mid, size=11.5,
+               color=INK, align="center", line=1.2)
+        c.text(tx + 2, ty + th - 24, tw - 4, 20, small, size=9.5, color=GRAY,
+               align="center", line=1.1)
+
+
+def _exam_card(c, x, y, w, h):
+    """Right card: a 100-point bar with the 60 pass line."""
+    e = exam.COMPUTER
+    c.rect(x, y, w, h, fill=GREEN_T, radius=12)
+    c.rect(x, y, w, 5, fill=GREEN, radius=2)
+    c.text(x + 12, y + 14, w - 24, 22, "الاختبار المحوسب",
+           size=13.5, bold=True, color=GREEN_D, align="right", line=1.2)
+    c.text(x + 12, y + 36, w - 24, 18, e["name"], size=10, color=GREEN,
+           align="right", line=1.15)
+    # pass badge
+    by = y + 56
+    c.rect(x + 12, by, w - 24, 46, fill=WHITE, stroke=GREEN, width=0.8,
+           radius=9)
+    c.text(x + 24, by + 6, 96, 34, e["pass_text"], size=21, bold=True,
+           color=GREEN_D, align="right", line=1.0, wrap=False)
+    c.text(x + 12, by + 10, w - 132, 30, "درجة النجاح", size=12, bold=True,
+           color=INK, align="right", line=1.1)
+    # bar: 0 -> 100, LTR geometry so "60" sits left of "100"
+    bx, bw = x + 22, w - 44
+    bar_y, bar_h = by + 56, 20
+    c.rect(bx, bar_y, bw, bar_h, fill=WHITE, stroke=LINE, width=0.7, radius=4)
+    c.rect(bx, bar_y, bw * e["pass"] / e["total"], bar_h, fill=GREEN, radius=4)
+    c.text(bx, bar_y + bar_h + 2, bw * 0.6, 16, "0", size=9.5, color=GRAY,
+           align="right", line=1.0, wrap=False)
+    c.text(bx + bw * 0.9, bar_y + bar_h + 2, bw * 0.1, 16, "100", size=9.5,
+           color=GRAY, align="left", line=1.0, wrap=False)
+    mx = bx + bw * e["pass"] / e["total"]
+    c.line(mx, bar_y - 5, mx, bar_y + bar_h + 5, color=RED, width=2)
+    c.text(mx - 26, bar_y - 22, 52, 16, "60", size=10.5, bold=True, color=RED,
+           align="center", line=1.0, wrap=False)
+
+
+def s_exam(d, wk, idx, total):
+    """Official pass criteria + what each one means for the weekly work."""
+    c, _ = d.new()
+    background(c)
+    ex = wk["exam"]
+    y = header(c, ex["title"], kicker="معايير رسمية من المعهد — نعرفها مبكرًا لنستعد لها",
+               sub=ex.get("lead"), chip="معايير")
+    card_h = 164
+    lw = CONTENT_W * 0.56
+    rw = CONTENT_W - lw - 20
+    rx = M
+    lx = SLIDE_W - M - lw
+    _exam_card(c, rx, y, rw, card_h)
+    _typing_card(c, lx, y, lw, card_h)
+    yy = y + card_h + 10
+    # three "what it changes" bullets
+    items = ex["items"]
+    n = len(items)
+    gap = 12
+    w = (CONTENT_W - gap * (n - 1)) / n
+    bh = 88
+    for i, (label, body) in enumerate(items):
+        x = SLIDE_W - M - w - i * (w + gap)
+        c.rect(x, yy, w, bh, fill=(WHITE if i % 2 == 0 else PANEL), stroke=LINE,
+               width=0.7, radius=10)
+        c.rect(x + w - 4, yy + 14, 4, 26, fill=(GREEN if i % 2 == 0 else RED),
+               radius=2)
+        c.text(x + 10, yy + 10, w - 26, 22, label, size=12, bold=True,
+               color=(GREEN_D if i % 2 == 0 else RED_D), align="right", line=1.15)
+        c.text(x + 10, yy + 34, w - 22, bh - 42, body, size=11, color=GRAY,
+               align="right", line=1.4)
+    # boundary strip: what we know and what we deliberately do not claim
+    ny = yy + bh + 10
+    nh = max(34, BOTTOM - ny)
+    c.rect(M, ny, CONTENT_W, nh, fill=AMBER_T, radius=10)
+    c.text(M + CONTENT_W - 150, ny + 10, 136, 20, "حدود ما نعرفه", size=11.5,
+           bold=True, color=AMBER, align="right", line=1.1)
+    c.text(M + 14, ny + 12, CONTENT_W - 180, nh - 18,
+           "هذه الأرقام معلنة من المعهد، أما أسئلة الاختبار وتوزيع درجاته فليست "
+           "لدينا ولم نضعها. كل ما في هذه الدورة تدريبات أصلية تخدم المهارات نفسها.",
+           size=11, color=AMBER, align="right", line=1.4)
+    footer(c, f"الأسبوع {wk['no_ar']}", wk["topic_short"], idx, total)
+    c.notes(wk["notes"]["exam"])
+    _fit(c, BOTTOM)
+    return c
+
+
 def s_versions(d, wk, idx, total):
     """Office version differences — same idea, different tab names."""
     c, _ = d.new()
@@ -1078,14 +1184,14 @@ LAYOUTS = {
     "visual": s_visual, "steps": s_steps, "demo": s_demo, "guided": s_guided,
     "challenge": s_challenge, "mistakes": s_mistakes, "simulation": s_sim,
     "quiz": s_quiz, "zoom": s_zoom, "review": s_review, "wrap": s_wrap,
-    "versions": s_versions,
+    "versions": s_versions, "exam": s_exam,
 }
 
 
 def render(d, wk):
     order = wk.get("order") or [
-        "cover", "warmup", "outcomes", "visual", "steps", "demo", "guided",
-        "challenge", "mistakes", "simulation", "quiz", "zoom",
+        "cover", "warmup", "outcomes", "exam", "visual", "steps", "demo",
+        "guided", "challenge", "mistakes", "simulation", "quiz", "zoom",
     ]
     total = len(order)
     for i, key in enumerate(order, 1):
