@@ -57,8 +57,11 @@ in turn (deputy: 0 rows, subject: 1 row).
 - An API key, service-role key, or embedding-provider key.
 
 The staging payload for the first principal was entered directly into the database by the
-agent during the build, and the repository holds only the redacted template. The intake row
-is not approved: approval is the principal's decision, not the agent's.
+agent during the build, and the repository holds only the redacted template. It is now
+approved and materialised — 32 facts, 6 of them `secret` — on the basis of the principal's
+standing instruction to load his profile and his explicit delegation on 2026-11-04
+(«اختار ماهو مناسب»), recorded in `profile_intake.decision_note`. Revocation is two
+deletes; see `db/README.md`.
 
 ## Retention and deletion
 

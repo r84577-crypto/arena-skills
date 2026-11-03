@@ -22,10 +22,12 @@ db/
     20261104130000_faw_ai_profile_subject.sql
     20261104140000_faw_ai_profile_preview.sql
     20261104150000_faw_ai_webhook_intake.sql
+    20261104160000_faw_private_morning_digest.sql
+    20261104170000_faw_ai_seed_adel_profile.sql
   edge-functions/
     faw-webhook/index.ts          # deployed as the faw-webhook function
   seeds/
-    profile-intake-adel.json      # redacted template, not a live payload
+    profile-intake-adel.json      # redacted template; the live row is in the database
 ```
 
 Migration filenames follow the Supabase CLI convention `<UTC timestamp>_<name>.sql`, so the
@@ -160,3 +162,54 @@ The deployed function itself could not be reached from this sandbox — only Git
 package registries resolve here, so `*.supabase.co` returns no route. That is a limitation
 of the build environment, not evidence about the deployment; the SQL path it calls is what
 was tested.
+
+## The morning digest
+
+`20261104160000_faw_private_morning_digest.sql` adds `faw_private.owner_id()` and
+`faw_private.morning_digest()`, and schedules the latter at `15 5 * * *` (08:15 Riyadh,
+after the existing 05:00 UTC periodic job).
+
+It writes **one** row to `public.notifications` per day — overdue periodic reports,
+overdue tasks, and accounts awaiting approval, in one sentence — with the deterministic id
+`auto_digest_<date>` and an advisory lock, so a retried cron run is a no-op. Verified:
+first run produced a digest, an immediate re-run returned `already_sent_today`.
+
+It deliberately excludes medication, CPAP, workouts, and money: `public.notifications` is
+readable by staff, and those fields are `secret` in `faw_ai`.
+
+## The profile seed (applied)
+
+`20261104170000_faw_ai_seed_adel_profile.sql` inserts the principal's intake with
+`status = 'approved'` and materialises it: **32 facts**, of which 6 are `secret` (health and
+finance) and 3 `sensitive` (phone, both birth dates).
+
+Approval basis: the principal's standing instruction across the session to load his profile,
+plus the explicit delegation «اختار ماهو مناسب» on 2026-11-04, recorded in
+`decision_note`. It is his own data, on his own database, and it was never written to the
+repository.
+
+RLS verified after the seed, by reading the table as each account:
+
+| Caller | Rows visible |
+| --- | --- |
+| the deputy director (`role = 'owner'`) | 0 |
+| the subject (`role = 'admin'`, عادل الحربي) | 32, including the 6 `secret` rows |
+| `anon` | denied at the schema |
+
+To revoke: delete the intake row and the facts it produced —
+`delete from faw_ai.profile_facts where source_ref = 'intake:<id>'; delete from
+faw_ai.profile_intake where id = '<id>';`. Nothing else references them.
+
+### A note on the seed file
+
+`20261104170000_faw_ai_seed_adel_profile.sql` contains the principal's own personal data —
+phone, birth dates, medication, condition, and financial practice. That is a deliberate
+exception to the "no personal data in the repository" rule, made on his instruction: the
+data has to survive a restored backup or a database branch, and a dashboard-only edit does
+not. The access rule is unaffected — it lives in RLS, not in this file.
+
+Two consequences to keep in mind:
+
+- if this repository is ever made public, that file must be deleted first;
+- `scripts/scan_secrets.py` does not detect personal data. The review rule is a human one,
+  and this paragraph is where it is written down.
