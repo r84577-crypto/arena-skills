@@ -20,6 +20,7 @@ db/
     20261103090000_faw_ai_memory_phase1.sql
     20261104120000_faw_ai_profile_intake.sql
     20261104130000_faw_ai_profile_subject.sql
+    20261104140000_faw_ai_profile_preview.sql
   seeds/
     profile-intake-adel.json      # redacted template, not a live payload
 ```

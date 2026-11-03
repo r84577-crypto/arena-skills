@@ -90,10 +90,36 @@ server-side writer is the most dangerous caller: it can set any `owner_id`.
 | `api_ai_snapshot()` | `jsonb` | counts for the owner + attribution footer |
 | `api_profile_seed(subject?)` | `jsonb` | subject-only; materialises an approved intake, reports `facts_written` and `secret_tier` |
 | `api_profile_brief()` | `jsonb` | staff-safe: no phone, no birth date, no health, no money |
+| `api_profile_preview(subject?)` | `jsonb` | field list and tier counts for the caller's staged intake, never the values |
 | `api_attribution_footer()` | `text` | the one credit-line source of truth |
 
 All are `security invoker`, so RLS applies to the caller. All are revoked from `public` and
 `anon` and granted to `authenticated` and `service_role` only.
+
+## Manifest names → objects that exist
+
+The project briefs that shaped this work used a different vocabulary from the schema. Use
+the right-hand column; the left-hand names exist nowhere in the database.
+
+| Name in the brief | What exists | Why the change |
+| --- | --- | --- |
+| `Adel_Master_Profile` | `faw_ai.profile_facts` + `faw_ai.profile_intake` | one row per sourced fact, not one JSON blob per person; facts can be superseded, dated, and tiered individually |
+| `Biometric_Health_Logs` | `faw_ai.health_logs` | same shape, snake_case, and `kind` covers medication, CPAP, sleep, workouts, labs |
+| `Financial_Ledger` | `faw_ai.finance_entries` | same |
+| `Institute_Reports_Vault` | `public.periodic_reports` + `public.report_templates` | these already existed and hold 30 reports; a second vault would split the institute's history in two |
+| `Linear_Task_Stream` | `public.tasks` (written through `api_task_save`) | the existing table carries `rev`, status transitions, and audit; a parallel stream would desynchronise on the first sync |
+| `Brain_Dump_Ideas` | `faw_ai.memory_documents` with `source_kind = 'note'` | an idea is a memory chunk with a date, not a separate table |
+| `Career_Milestones` | `faw_ai.institute_milestones` | same |
+
+Two more claims in the briefs that do not map to a feature:
+
+- **"AES-256 encryption"** — at-rest encryption is a platform/plan feature, not a SQL
+  statement. What is available and worth doing: `pgcrypto` for specific columns and
+  Supabase Vault for keys (both installed). Column-level encryption of `value` in
+  `profile_facts` is a real option, at the cost of losing SQL search over that column.
+- **"A personal dialect embedding model"** — no such artifact can be trained here. What is
+  achievable: a style instruction block per dialect, and lexical notes stored as facts.
+  Embeddings come from a provider; they encode meaning, not dialect.
 
 ## Rules for extending it
 
