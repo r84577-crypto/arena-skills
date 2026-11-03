@@ -21,6 +21,8 @@ This skill describes that layer as it was actually built, so a later agent exten
 instead of rebuilding it differently.
 
 Phase 1 is in production on Supabase project `faw-marketing` (ref `tbvtzuspjcxsidpqknid`).
+The twin belongs to its **subject** (`subject_user_id`), not to the account with
+`role = 'owner'` — in this database that account is the deputy director.
 The schema, the RPCs, and the policies are recorded in [SCHEMA.md](SCHEMA.md). What is
 deliberately **not** built yet — an embedder, dashboards, and cross-connector automation —
 is specified with its guardrails in [AUTOMATION.md](AUTOMATION.md).
@@ -157,6 +159,7 @@ where n.nspname = 'faw_ai' and c.relkind = 'r' order by 1;
 ## References
 
 - [SCHEMA.md](SCHEMA.md) — tables, RPCs, policies, and the rules for extending them
+- [DATA-GOVERNANCE.md](DATA-GOVERNANCE.md) — sensitivity tiers, the intake flow, and who may read which twin
 - [AUTOMATION.md](AUTOMATION.md) — phase 2, with the guardrails a connector feed must respect
 - [ATTRIBUTION.md](ATTRIBUTION.md) — the mandatory credit line, per output surface
 - `db/migrations/20261103090000_faw_ai_memory_phase1.sql` — the applied migration, re-runnable

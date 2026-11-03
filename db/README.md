@@ -18,6 +18,10 @@ db/
     config.toml            # minimal config for the Supabase CLI and repo linkage
   migrations/
     20261103090000_faw_ai_memory_phase1.sql
+    20261104120000_faw_ai_profile_intake.sql
+    20261104130000_faw_ai_profile_subject.sql
+  seeds/
+    profile-intake-adel.json      # redacted template, not a live payload
 ```
 
 Migration filenames follow the Supabase CLI convention `<UTC timestamp>_<name>.sql`, so the
@@ -35,6 +39,26 @@ CLI applies them in the same order they were written.
 
 It touches **nothing** that already existed: no `drop`, no rename, no column type change,
 no policy replacement on an operational table. It is written to be re-runnable.
+
+## The profile migrations
+
+`20261104120000_faw_ai_profile_intake.sql` adds the staging table, the field map, the seed
+RPC, and the staff-safe brief. `20261104130000_faw_ai_profile_subject.sql` corrects the
+first one: the twin belongs to `subject_user_id`, not to the account with
+`role = 'owner'` — in this database that is the deputy director, so the first version let
+the deputy read a health declaration the subject could neither see nor approve. Both are
+reflected in the applied function bodies; the older file is kept as written rather than
+rewritten, because it is already applied.
+
+Two bugs were found by the verification run and fixed rather than documented as expected
+behaviour:
+
+- counting upserted rows inside the same statement reported `facts_written = 0`;
+- aggregating the breakdown over `(category, sensitivity)` collapsed rows, so the category
+  counts were too low. The `secret_tier` count was a side effect of that collapse and
+  under-reported health data.
+
+Both are the reason the seed RPC returns numbers at all: a silent zero looks like success.
 
 ### Verify before applying to a branch
 

@@ -32,6 +32,7 @@ dropped without a migration on the institute's side.
 | `finance_entries` | Personal ledger, SAR by default | none — an event log |
 | `institute_milestones` | Dated achievements, optionally tied to an org | none |
 | `agent_runs` | What an agent did, when, and whether it worked | none |
+| `profile_intake` | A staged profile awaiting the subject's approval | one `pending` per subject |
 
 Every table has `owner_id` and RLS enabled, with exactly one policy:
 
@@ -44,6 +45,12 @@ That means **one staff account cannot read another's twin data, and a supervisor
 read downward either** — unlike the operational tables, where `can_view_all()` deliberately
 grants supervisors institute-wide visibility. If a future requirement needs sharing, add a
 narrow policy for a specific role; never widen this one.
+
+`profile_intake` is the exception to the table-per-owner pattern: its policy is
+`subject_user_id = auth.uid()`, and `subject_user_id` is whose twin the payload describes.
+The system owner — `role = 'owner'` in `public.profiles` — is an administrator of the
+institute's data and has **no** read access to this table. See
+[DATA-GOVERNANCE.md](DATA-GOVERNANCE.md) for why that was corrected after first shipping.
 
 `anon` has no `USAGE` on the schema. `authenticated` gets DML on tables and `EXECUTE` on
 the four RPCs below. `service_role` keeps full access and bypasses RLS — which is why a
@@ -81,6 +88,8 @@ server-side writer is the most dangerous caller: it can set any `owner_id`.
 | `api_memory_search(query, limit?)` | rows + `score` | trigram similarity, works with no embeddings |
 | `api_memory_match(embedding_json, limit?, min_sim?)` | rows + `score` | raises a readable error if the vector is not 1536-D |
 | `api_ai_snapshot()` | `jsonb` | counts for the owner + attribution footer |
+| `api_profile_seed(subject?)` | `jsonb` | subject-only; materialises an approved intake, reports `facts_written` and `secret_tier` |
+| `api_profile_brief()` | `jsonb` | staff-safe: no phone, no birth date, no health, no money |
 | `api_attribution_footer()` | `text` | the one credit-line source of truth |
 
 All are `security invoker`, so RLS applies to the caller. All are revoked from `public` and
