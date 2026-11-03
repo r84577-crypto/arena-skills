@@ -1,0 +1,35 @@
+# Supabase CLI configuration for the PERSONAL deployment.
+# Run from this directory:  cd personal && supabase db push
+#
+# project_id is intentionally empty: the personal project is created by the
+# principal on his own account, and its reference must not be guessed or reused
+# from the institute's. Set it locally, or export SUPABASE_PROJECT_ID.
+project_id = ""
+
+[db]
+major_version = 17
+
+[db.migrations]
+enabled = true
+
+[api]
+# Only the `personal` schema is exposed. `personal_private` holds encrypted
+# values and is reachable only through personal.reveal_secret().
+schemas = ["personal"]
+extra_search_path = ["personal", "extensions"]
+max_rows = 1000
+
+[studio]
+enabled = false
+
+[inbucket]
+enabled = false
+
+[auth]
+enabled = true
+
+[storage]
+enabled = false
+
+[analytics]
+enabled = false

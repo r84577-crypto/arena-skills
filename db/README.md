@@ -177,39 +177,29 @@ first run produced a digest, an immediate re-run returned `already_sent_today`.
 It deliberately excludes medication, CPAP, workouts, and money: `public.notifications` is
 readable by staff, and those fields are `secret` in `faw_ai`.
 
-## The profile seed (applied)
+## The profile seed (applied, not committed)
 
-`20261104170000_faw_ai_seed_adel_profile.sql` inserts the principal's intake with
-`status = 'approved'` and materialises it: **32 facts**, of which 6 are `secret` (health and
-finance) and 3 `sensitive` (phone, both birth dates).
+The seed that materialised the principal's 32 facts was applied directly to the database and
+then **removed from this repository**, because the repository is public and the file
+contained a phone number, both birth dates, a medication, a diagnosis, and a financial
+practice.
 
-Approval basis: the principal's standing instruction across the session to load his profile,
-plus the explicit delegation «اختار ماهو مناسب» on 2026-11-04, recorded in
-`decision_note`. It is his own data, on his own database, and it was never written to the
-repository.
+What that means in practice:
 
-RLS verified after the seed, by reading the table as each account:
+- the data lives in `faw_ai.profile_facts`, correctly tiered (6 `secret`, 3 `sensitive`);
+- it is **not** reproducible from this repository, which is deliberate;
+- a restore, a branch, or a second environment needs the private seed, held outside git;
+- `.gitignore` now blocks `db/migrations/*seed*profile*.sql` and
+  `personal/migrations/*seed*.sql`, so the same mistake cannot be made by habit.
 
-| Caller | Rows visible |
-| --- | --- |
-| the deputy director (`role = 'owner'`) | 0 |
-| the subject (`role = 'admin'`, عادل الحربي) | 32, including the 6 `secret` rows |
-| `anon` | denied at the schema |
+The approval record stays in the database (`profile_intake.decision_note`), not in a commit.
 
-To revoke: delete the intake row and the facts it produced —
-`delete from faw_ai.profile_facts where source_ref = 'intake:<id>'; delete from
-faw_ai.profile_intake where id = '<id>';`. Nothing else references them.
+### Revocation
 
-### A note on the seed file
+```sql
+delete from faw_ai.profile_facts where owner_id = '<principal-uuid>';
+delete from faw_ai.profile_intake where subject = 'adel';
+```
 
-`20261104170000_faw_ai_seed_adel_profile.sql` contains the principal's own personal data —
-phone, birth dates, medication, condition, and financial practice. That is a deliberate
-exception to the "no personal data in the repository" rule, made on his instruction: the
-data has to survive a restored backup or a database branch, and a dashboard-only edit does
-not. The access rule is unaffected — it lives in RLS, not in this file.
-
-Two consequences to keep in mind:
-
-- if this repository is ever made public, that file must be deleted first;
-- `scripts/scan_secrets.py` does not detect personal data. The review rule is a human one,
-  and this paragraph is where it is written down.
+Nothing else references those rows: `agent_runs` keeps its own copy of the action, and the
+institute tables were never touched.

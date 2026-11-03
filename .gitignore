@@ -43,3 +43,8 @@ obj/
 # Scratch
 .cache/
 tmp/
+
+# Personal data — never committed. The principal's profile seed is applied
+# directly to the database and is reproducible only from a private channel.
+db/migrations/*seed*profile*.sql
+personal/migrations/*seed*.sql
