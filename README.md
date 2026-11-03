@@ -18,6 +18,7 @@ The two halves are separate because a skill is an instruction set with a defined
 | --- | --- |
 | [`repo-audit`](skills/repo-audit/SKILL.md) | Audits a repository for licensing, CI, link, metadata, and credential gaps |
 | [`skill-authoring`](skills/skill-authoring/SKILL.md) | Writes and repairs `SKILL.md` files so agents actually load them |
+| [`faw-ai-memory`](skills/faw-ai-memory/SKILL.md) | Operates a production owner-scoped memory layer (pgvector, health, finance) on an existing Supabase project |
 
 `skills/index.json` is the generated manifest; `python3 scripts/validate-skills.py` enforces the
 contract and CI runs it on every pull request.
