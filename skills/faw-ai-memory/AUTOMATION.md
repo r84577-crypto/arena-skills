@@ -53,6 +53,50 @@ that RPC maintains `rev`, status transitions, and the audit log; a direct insert
 task the sync engine will fight over. **Medical and financial data never leave `faw_ai`** —
 no document, prompt, or email is generated from `sensitivity = 'secret'` rows.
 
+## 2b. External mesh: one signed door
+
+Telegram, WhatsApp Business, Zapier, Make, and any custom REST client all deliver to the
+same place: the `faw-webhook` edge function, which forwards to `faw_ai.webhook_ingest()`.
+
+```text
+caller ──POST ?source=<id>, header x-faw-token ──► faw-webhook ──► faw_ai.webhook_ingest()
+                                                                     ├─ token: SHA-256 compare
+                                                                     ├─ 60 events / minute / source
+                                                                     ├─ payload ceiling per source
+                                                                     └─ dedupe on external_id
+```
+
+Design decisions worth keeping:
+
+- **Tokens are stored as SHA-256, never plaintext.** `register_webhook_source()` takes the
+  token once and keeps the hash; the caller keeps the secret. A database dump does not leak
+  live gateway tokens.
+- **The rules are in Postgres, not in the function.** Two concurrent deliveries cannot be
+  serialised at the edge, so a "have I seen this?" check in TypeScript races. The unique
+  index on `(source_id, external_id)` is the actual guarantee.
+- **Capture is not memory.** Events land in `faw_ai.webhook_events` with `status = 'new'`.
+  Promoting an event into `memory_documents` is a separate, reviewable step — a chat log
+  should not become permanent memory because a gateway retried a delivery.
+- **`verify_jwt` is off for this function and only for this function.** Callers are third
+  parties with no Supabase key; the source token is the authentication. Any other function
+  left with `verify_jwt = false` is a finding.
+- **Telegram's `update_id` is used as the idempotency key automatically**; WhatsApp callers
+  should pass `external_id` or an `Idempotency-Key` header. `duplicate` returns 202, because a
+  retry that was already stored is not a failure the sender should retry again.
+
+What is still missing, and what it needs:
+
+| Piece | Needs from the principal |
+| --- | --- |
+| Telegram bot | a bot token from BotFather, then `supabase secrets set FAW_WEBHOOK_TOKEN_TELEGRAM=…` and `setWebhook` |
+| WhatsApp Business | Meta app review, a phone number id, and a permanent access token |
+| Zapier / Make | nothing but the URL and the token; they are the easy first client |
+| Outbound notifications | a channel decision; the existing `public.notifications` table is the cheapest start |
+
+The function cannot be smoke-tested from this sandbox: only GitHub and package registries
+are reachable on the network, so `*.supabase.co` does not resolve here. The SQL underneath
+was tested directly instead (see the migration notes in `db/README.md`).
+
 ## 3. Anti-procrastination and reminders
 
 The operational tables already answer most of this: `public.tasks` with `status`, `due_at`,

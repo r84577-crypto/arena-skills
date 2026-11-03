@@ -21,6 +21,9 @@ db/
     20261104120000_faw_ai_profile_intake.sql
     20261104130000_faw_ai_profile_subject.sql
     20261104140000_faw_ai_profile_preview.sql
+    20261104150000_faw_ai_webhook_intake.sql
+  edge-functions/
+    faw-webhook/index.ts          # deployed as the faw-webhook function
   seeds/
     profile-intake-adel.json      # redacted template, not a live payload
 ```
@@ -134,3 +137,26 @@ branch has been reviewed.
 - New functions are revoked from `public` and `anon`, then granted explicitly.
 - Use `timestamptz` for anything a person will read. The operational tables store ISO text;
   do not copy that pattern into new tables.
+
+## The webhook migration
+
+`20261104150000_faw_ai_webhook_intake.sql` adds `faw_ai.webhook_sources` and
+`faw_ai.webhook_events`, plus `register_webhook_source()` and `webhook_ingest()`. Both
+tables have RLS enabled and **no policies**: the edge function reaches them with
+`service_role`, and no logged-in staff member should be able to list gateway tokens or read
+another person's incoming messages.
+
+Verified inside rolled-back transactions:
+
+| Case | Result |
+| --- | --- |
+| correct token, new `external_id` | `accepted`, event id returned |
+| same `external_id` again | `duplicate`, no second row |
+| wrong token | `bad_token` |
+| unknown source | `unknown_source` |
+| two different ids | two rows |
+
+The deployed function itself could not be reached from this sandbox — only GitHub and
+package registries resolve here, so `*.supabase.co` returns no route. That is a limitation
+of the build environment, not evidence about the deployment; the SQL path it calls is what
+was tested.
