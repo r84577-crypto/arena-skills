@@ -1,6 +1,6 @@
 # `personal/` — the sovereign personal OS
 
-This directory is the **personal** half of Adel Alharbi's digital twin. It is not institute
+This directory contains reusable schema and application logic for a single-owner personal system. It is not institute It is not institute
 software, it does not read the institute's operational tables, and nothing in
 `db/` depends on it.
 
