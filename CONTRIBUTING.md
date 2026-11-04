@@ -213,7 +213,7 @@ What it enforces:
 | Rule | Setting | Why |
 | --- | --- | --- |
 | Pull request required | 0 approvals | Keeps the gate without locking out a solo maintainer — GitHub does not let you approve your own PR |
-| Required status checks | Markdown lint · Relative links, anchors, images · Skill contract · No credentials committed | The four jobs that run on every pull request |
+| Required status checks | Markdown lint · Relative links, anchors, images · Skill contract · No credentials committed · CodeQL | The five checks that run on every pull request |
 | Strict checks | on | The branch must be current with `main`, which is what surfaces duplicate-content conflicts after a squash merge |
 | Force pushes | blocked | History on `main` is append-only |
 | Deletion | blocked | — |
