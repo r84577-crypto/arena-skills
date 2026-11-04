@@ -1,7 +1,6 @@
 # `personal/` — the sovereign personal OS
 
-This directory contains reusable schema and application logic for a single-owner personal system. It is not institute It is not institute
-software, it does not read the institute's operational tables, and nothing in
+This directory contains reusable schema and application logic for a single-owner personal system. It is separate from institute software, it does not read the institute's operational tables, and nothing in
 `db/` depends on it.
 
 ## Why it is a separate deployment
