@@ -213,7 +213,7 @@ What it enforces:
 | Rule | Setting | Why |
 | --- | --- | --- |
 | Pull request required | 0 approvals | Keeps the gate without locking out a solo maintainer — GitHub does not let you approve your own PR |
-| Required status checks | Markdown lint · Relative links, anchors, images · Skill contract · No credentials committed · Verify listed repositories | The five jobs that run on a pull request |
+| Required status checks | Markdown lint · Relative links, anchors, images · Skill contract · No credentials committed | The four jobs that run on every pull request |
 | Strict checks | on | The branch must be current with `main`, which is what surfaces duplicate-content conflicts after a squash merge |
 | Force pushes | blocked | History on `main` is append-only |
 | Deletion | blocked | — |
@@ -222,9 +222,9 @@ Two checks are deliberately **not** required:
 
 - **External links (report only)** — `continue-on-error` by design; requiring a check
   whose premise is "may fail harmlessly" teaches you to ignore red marks.
-- Anything that does not run on `pull_request`. A required check that never reports
-  blocks the pull request forever. `skill-sources.yml` was in that state until it
-  gained a `pull_request` trigger; keep that trigger if you touch the file.
+- **Verify listed repositories** — `skill-sources.yml` is path-filtered and therefore
+  does not report on unrelated pull requests. Keeping it advisory avoids a permanently
+  pending required check; it still runs on relevant changes, scheduled runs, and manual runs.
 
 Apply the versioned configuration after editing it:
 
