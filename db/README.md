@@ -23,11 +23,8 @@ db/
     20261104140000_faw_ai_profile_preview.sql
     20261104150000_faw_ai_webhook_intake.sql
     20261104160000_faw_private_morning_digest.sql
-    20261104170000_faw_ai_seed_adel_profile.sql
   edge-functions/
     faw-webhook/index.ts          # deployed as the faw-webhook function
-  seeds/
-    profile-intake-adel.json      # redacted template; the live row is in the database
 ```
 
 Migration filenames follow the Supabase CLI convention `<UTC timestamp>_<name>.sql`, so the
@@ -177,29 +174,26 @@ first run produced a digest, an immediate re-run returned `already_sent_today`.
 It deliberately excludes medication, CPAP, workouts, and money: `public.notifications` is
 readable by staff, and those fields are `secret` in `faw_ai`.
 
-## The profile seed (applied, not committed)
+## Private profile data
 
-The seed that materialised the principal's 32 facts was applied directly to the database and
-then **removed from this repository**, because the repository is public and the file
-contained a phone number, both birth dates, a medication, a diagnosis, and a financial
-practice.
+This public repository intentionally contains **no person-specific profile manifest or seed payload**.
+Private identity, contact, health, financial, family, and other personal facts must be supplied
+through a private deployment channel and stored only in a private project or secret store.
+Do not add real profile exports, intake payloads, or owner-specific seed SQL to this repository.
 
-What that means in practice:
+A previously tracked intake manifest is removed by the privacy-split branch. This change does
+not rewrite Git history: older commits may still contain that file. The history audit is a
+separate step and must be reviewed before any history rewrite is considered.
 
-- the data lives in `faw_ai.profile_facts`, correctly tiered (6 `secret`, 3 `sensitive`);
-- it is **not** reproducible from this repository, which is deliberate;
-- a restore, a branch, or a second environment needs the private seed, held outside git;
-- `.gitignore` now blocks `db/migrations/*seed*profile*.sql` and
-  `personal/migrations/*seed*.sql`, so the same mistake cannot be made by habit.
+The database remains the source of truth for any already-applied data. Removing a manifest
+from Git does not delete database rows, revoke access to historical Git objects, or prove that
+all copies have been removed from forks, caches, or clones.
 
-The approval record stays in the database (`profile_intake.decision_note`), not in a commit.
+### Private-data handling checklist
 
-### Revocation
-
-```sql
-delete from faw_ai.profile_facts where owner_id = '<principal-uuid>';
-delete from faw_ai.profile_intake where subject = 'adel';
-```
-
-Nothing else references those rows: `agent_runs` keeps its own copy of the action, and the
-institute tables were never touched.
+- Keep private seed files outside the repository and outside public CI artifacts.
+- Use a dedicated private repository only if versioning the private deployment is necessary.
+- Prefer authenticated owner-scoped intake over committing personal payloads.
+- Never place service-role keys, webhook tokens, or encryption keys in Git.
+- Audit Git history and any forks separately; do not force-push or rewrite history without
+  a verified backup and explicit approval.
