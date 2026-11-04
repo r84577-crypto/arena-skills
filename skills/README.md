@@ -24,6 +24,7 @@ The leading underscore on `_template` keeps it out of any glob that loads every 
 | --- | --- | --- | --- |
 | [`repo-audit`](repo-audit/SKILL.md) | Audits a repository for licensing, CI, link, metadata, and credential gaps | MIT | 1.0.0 |
 | [`skill-authoring`](skill-authoring/SKILL.md) | Writes and repairs `SKILL.md` files so agents actually load them | MIT | 1.0.0 |
+| [`faw-ai-memory`](faw-ai-memory/SKILL.md) | Operates the Faw Institute lead's owner-scoped Supabase memory layer: profile facts, pgvector documents, health, finance, milestones | MIT | 1.0.0 |
 
 `skills/index.json` is the machine-readable form of this table. It is generated, not
 hand-edited — see [Validating](#validating).

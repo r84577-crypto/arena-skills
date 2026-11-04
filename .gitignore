@@ -43,3 +43,8 @@ obj/
 # Scratch
 .cache/
 tmp/
+
+# Personal data — never committed. Name the exact files, never a wildcard:
+# an earlier rule used *seed*profile*.sql and silently swallowed a legitimate
+# migration whose filename merely contained "seed".
+db/migrations/20261104170000_faw_ai_seed_adel_profile.sql

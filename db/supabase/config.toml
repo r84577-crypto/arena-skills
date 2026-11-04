@@ -1,0 +1,42 @@
+# Minimal Supabase CLI configuration for this repository's database changes.
+#
+# Run the CLI from this directory (`cd db`), so that `supabase/migrations` is
+# resolved relative to this file rather than to the repository root.
+#
+# `project_id` is the project reference, not the display name. Override it per
+# environment with SUPABASE_PROJECT_ID instead of editing this file.
+
+project_id = "tbvtzuspjcxsidpqknid"
+
+[db]
+# Apply `migrations/*.sql` in filename order on `supabase db push`. The files are
+# written to be re-runnable, so a partially applied run is safe to repeat.
+# The seed file is intentionally not configured: this database holds live
+# institute data and must never be seeded from the repository.
+major_version = 17
+
+[db.migrations]
+enabled = true
+schema_paths = []
+
+[api]
+# PostgREST exposes `public` only. The memory layer is read through the
+# `public.api_*` wrapper functions, never by exposing the `faw_ai` schema.
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[studio]
+enabled = false
+
+[inbucket]
+enabled = false
+
+[auth]
+enabled = false
+
+[storage]
+enabled = false
+
+[analytics]
+enabled = false
