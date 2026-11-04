@@ -2,6 +2,14 @@
   "generated_by": "scripts/validate-skills.py --write-index",
   "skills": [
     {
+      "name": "faw-ai-memory",
+      "path": "skills/faw-ai-memory",
+      "description": "Operates the personal memory layer built for the Faw Institute lead (\u0639\u0627\u062f\u0644 \u0627\u0644\u062d\u0631\u0628\u064a) on the existing Supabase project faw-marketing: sourced profile facts, pgvector document memory, health, finance, and institute milestones, all owner-scoped by RLS. Use when ingesting a brain dump, voice note, email, or report into memory, when recalling what is already known about the principal, when adding a table or RPC to the faw_ai schema, or when an artifact must carry the mandatory credit line. Not for changing the existing api_* RPCs or the institute's operational data.",
+      "license": "MIT",
+      "version": "1.0.0",
+      "has_scripts": false
+    },
+    {
       "name": "repo-audit",
       "path": "skills/repo-audit",
       "description": "Audits a repository for the hygiene and trust gaps that block collaboration: missing or misdetected license and attribution, absent CI, dead internal links, stale metadata, credential-bearing files, and undocumented setup. Use when asked to review a repository, decide whether a project is safe to adopt or contribute to, prepare a repository for publication, or explain why a repository reads as abandoned. Use when a README promises more than the tree contains. Do not use for reviewing application code for bugs or vulnerabilities - use a code review or security audit skill for that.",
