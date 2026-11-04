@@ -52,6 +52,9 @@
           },
           {
             "context": "No credentials committed"
+          },
+          {
+            "context": "CodeQL"
           }
         ]
       }
