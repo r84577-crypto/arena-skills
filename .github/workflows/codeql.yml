@@ -36,6 +36,6 @@ jobs:
           queries: security-extended,security-and-quality
 
       - name: Analyze
-        uses: github/codeql-action/analyze@a3d1b77a1ba1550fbb5c74db1dc3a11f4a481126 # v3
+        uses: github/codeql-action/analyze@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v3
         with:
           category: "/language:${{ matrix.language }}"
