@@ -180,14 +180,14 @@ create table if not exists personal.agent_runs (
 create index if not exists agent_runs_started_idx on personal.agent_runs (started_at desc);
 
 -- ---------------------------------------------------------------------------
--- 7. Attribution: one source of truth, same wording as the institute system
+-- 7. Generic attribution; owner identity is configured privately
 -- ---------------------------------------------------------------------------
 create or replace function personal.attribution_footer()
 returns text
 language sql
 immutable
 as $$
-  select 'تم إعداد وتطوير هذا العمل بواسطة: الأستاذ عادل الحربي - مدير الحاسب';
+  select 'Maintained by the project owner.';
 $$;
 
 -- ---------------------------------------------------------------------------
@@ -253,7 +253,7 @@ begin
   end if;
 
   insert into personal.principal (user_id, full_name, honorific, bootstrapped_at)
-  values (v_uid, 'عادل عبدالله الحربي', 'أبو عبدالله', now())
+  values (v_uid, 'Principal', null, now())
   on conflict (user_id) do update set bootstrapped_at = coalesce(personal.principal.bootstrapped_at, now());
 
   insert into personal.agent_runs (owner_id, agent, action, target, status, finished_at)
