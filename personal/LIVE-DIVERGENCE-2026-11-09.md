@@ -7,7 +7,7 @@
 ## أُعيد توثيقه بدقة (نص حيّ حرفي)
 
 | الملف | المحتوى | التحقق |
-|---|---|---|
+| --- | --- | --- |
 | `0008` | `personal.context_decisions` + سياسته | `pg_policies` |
 | `0008` | `personal.resolve_scope` + `personal.route` (نص كامل) | `pg_get_functiondef` |
 | `0008` | `training.can_read/can_write` (نص كامل + تشديد ACL) | `pg_get_functiondef` + `proacl` قبل/بعد |
