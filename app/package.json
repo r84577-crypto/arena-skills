@@ -14,12 +14,14 @@
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.45.4",
     "next": "^15.1.0",
+    "nodemailer": "^10.4.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "three": "^0.170.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "@types/nodemailer": "^8.0.2",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/three": "^0.170.0",

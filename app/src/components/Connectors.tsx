@@ -7,7 +7,7 @@
 const CONNECTORS = [
   { name: "Supabase", state: "ok", text: "27 جدولاً · 3 مخططات · الفحص clean" },
   { name: "Google Calendar", state: "ok", text: "تقويم صحي معزول + رئيسي · بلا مشاركة عامة" },
-  { name: "Gmail", state: "ok", text: "القراءة تعمل · الإرسال عبر البوابة الجديدة" },
+  { name: "Gmail", state: "ok", text: "القراءة تعمل · الإرسال مجاني عبر SMTP/Resend" },
   { name: "Notion", state: "ok", text: "قواعد التدريب · مشاركة عامة مغلقة" },
   { name: "Linear", state: "ok", text: "فريقان: SAM و CTR" },
   { name: "Google Drive", state: "ok", text: "قالب إسناد + لوحة حالة" },
