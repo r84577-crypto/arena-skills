@@ -1,11 +1,19 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import {
+  selectProvider,
+  scopeFooter,
+  scopeTag,
+  sendViaResend,
+  sendViaGmail,
+} from "@/lib/mailer";
 
 /**
  * POST /api/send-email — التسليم الخلفي للبريد.
  *
- * الترتيب مقصود: التهيئة → التحقق من الحقول → الجلسة → المالك → الإرسال.
- * بلا RESEND_API_KEY يجيب not_configured (503) بصدق — لا تظاهر بإرسال.
+ * الترتيب مقصود: اختيار المزوّد → التحقق من الحقول → الجلسة → المالك → الإرسال.
+ * المزوّدان مجانيان: Resend أولاً، ثم Gmail SMTP (كلمة مرور التطبيقات).
+ * بلا أي منهما يجيب not_configured (503) بصدق — لا تظاهر بإرسال.
  * الإسناد يُذيَّل حسب النطاق: تدريب → «مدرب الحاسب»، شخصي → «مدير الحاسب».
  */
 
@@ -15,16 +23,19 @@ export const runtime = "nodejs";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const MAX_BODY = 4000;
 
-const FOOTERS: Record<string, string> = {
-  TRAINING: "تم إعداد وتطوير هذا العمل بواسطة: الأستاذ عادل الحربي - مدرب الحاسب",
-  PERSONAL: "تم إعداد وتطوير هذا العمل بواسطة: الأستاذ عادل الحربي - مدير الحاسب",
-};
-
 export async function POST(req: Request) {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
+  // كائن صريح لا process.env مباشرة — فهرس البيئة لا يُرضي فاحص الأنواع الضعيفة.
+  const provider = selectProvider({
+    RESEND_API_KEY: process.env.RESEND_API_KEY,
+    GMAIL_USER: process.env.GMAIL_USER,
+    GMAIL_APP_PASSWORD: process.env.GMAIL_APP_PASSWORD,
+  });
+  if (!provider) {
     return NextResponse.json(
-      { status: "not_configured", reason: "RESEND_API_KEY غير مهيّأ على الخادم" },
+      {
+        status: "not_configured",
+        reason: "لا مزوّد بريد مهيّأ — RESEND_API_KEY أو (GMAIL_USER + GMAIL_APP_PASSWORD)",
+      },
       { status: 503 },
     );
   }
@@ -84,35 +95,31 @@ export async function POST(req: Request) {
     );
   }
 
-  const text = `${body}\n\n—\n${FOOTERS[scope]}`;
+  const text = `${body}\n\n—\n${scopeFooter(scope)}`;
+  const taggedSubject = `‎[${scopeTag(scope)}] ${subject}`;
 
-  try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: process.env.RESEND_FROM || "onboarding@resend.dev",
-        to: [to],
-        subject: `‎[${scope === "TRAINING" ? "تدريب" : "شخصي"}] ${subject}`,
-        text,
-      }),
-    });
-    if (!res.ok) {
-      const detail = await res.text().catch(() => "");
-      return NextResponse.json(
-        { status: "failed", reason: `المزوّد رفض (${res.status}): ${detail.slice(0, 200)}` },
-        { status: 502 },
-      );
-    }
-    const sent = (await res.json()) as { id?: string };
-    return NextResponse.json({ status: "sent", provider_ref: sent.id ?? null });
-  } catch (e) {
+  const result =
+    provider === "resend"
+      ? await sendViaResend({
+          apiKey: process.env.RESEND_API_KEY as string,
+          from: process.env.RESEND_FROM || "onboarding@resend.dev",
+          to,
+          subject: taggedSubject,
+          text,
+        })
+      : await sendViaGmail({
+          user: process.env.GMAIL_USER as string,
+          appPassword: process.env.GMAIL_APP_PASSWORD as string,
+          to,
+          subject: taggedSubject,
+          text,
+        });
+
+  if (!result.ok) {
     return NextResponse.json(
-      { status: "failed", reason: e instanceof Error ? e.message : "خطأ شبكة" },
+      { status: "failed", provider, reason: result.reason },
       { status: 502 },
     );
   }
+  return NextResponse.json({ status: "sent", provider, provider_ref: result.providerRef });
 }

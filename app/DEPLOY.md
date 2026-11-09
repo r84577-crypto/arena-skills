@@ -15,8 +15,11 @@
 3. **Environment Variables** (كل بيئة على حدة):
    - `NEXT_PUBLIC_SUPABASE_URL` = `https://hkgdtybmlrgbvakjgrxl.supabase.co`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = المفتاح العام (publishable/anon) من Supabase
-   - `RESEND_API_KEY` (خادم فقط — للإرسال، وإلا `not_configured` بصدق)
-   - `RESEND_FROM` (نطاق موثّق للإنتاج)
+   - `RESEND_API_KEY` (خادم فقط — 3000 رسالة/شهر مجاناً، وإلا `not_configured`)
+   - `RESEND_FROM` (نطاق موثّق للإنتاج؛ للتجربة `onboarding@resend.dev` لبريدك فقط)
+   - أو البديل المجاني الكامل: `GMAIL_USER` + `GMAIL_APP_PASSWORD` (خادم فقط —
+     كلمة مرور التطبيقات من `myaccount.google.com/apppasswords` بعد تفعيل
+     التحقق بخطوتين؛ ترسل لأي مستلم بحدود Gmail اليومية).
    - `WHATSAPP_TOKEN` + `WHATSAPP_PHONE_NUMBER_ID` (خادم فقط)
 4. لا تضع `SUPABASE_SERVICE_ROLE_KEY` هنا — لا حاجة له في هذه الواجهة أصلاً.
 5. انشر. بعدها: كل دفع على `main` ينشر للإنتاج تلقائياً، وكل PR يأخذ
