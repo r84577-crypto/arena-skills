@@ -8,3 +8,9 @@ updates:
       prefix: "ci"
     labels:
       - "dependencies"
+    # خطوتا CodeQL يجب أن تتحدثا معاً — تحديث واحدة دون الثانية
+    # كسر التحليل (v3/v4 معاً مرفوض من codeql-action نفسه).
+    groups:
+      codeql-action:
+        patterns:
+          - "github/codeql-action/*"
