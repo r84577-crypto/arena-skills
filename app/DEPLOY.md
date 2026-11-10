@@ -1,4 +1,4 @@
-# النشر التلقائي — Vercel + GitHub Actions
+# النشر التلقائي — Netlify (المعتمد) + Vercel (بديل) + GitHub Actions
 
 ## ما يعمل تلقائياً من اليوم
 
@@ -6,7 +6,28 @@
 ثم `typecheck`، ثم `next build`. الفحص يظهر على الـ PR قبل الدمج — لا كود
 مكسور يمر بصمت.
 
-## النشر التلقائي على Vercel (خطوات المالك — مرة واحدة)
+## النشر على Netlify — المضيف المعتمد (خطوات المالك — مرة واحدة)
+
+التطبيق يعمل بوضع SSR الكامل (مسارات `/api/*` ديناميكية) عبر
+`@netlify/plugin-nextjs` المثبتة في `package.json` والمفعّلة في
+`netlify.toml` الجذري — لا حاجة لأي إعداد يدوي للبناء.
+
+1. Netlify ← **Add new site** ← **Import an existing project** ← GitHub ←
+   `r84577-crypto/arena-skills` (المستودع خاص: امنح تطبيق Netlify الوصول
+   من **GitHub App Permissions** إذا لم يظهر).
+   - أو اربط مستودع Git بموقعك الحالي `alfao` من: Site settings ←
+     Build & deploy ← **Link repository**.
+2. **Base directory:** `app` — أمر البناء والنشر يُقرأ تلقائياً من `netlify.toml`.
+3. **Environment Variables** (نفس القيم المعتمدة):
+   - `NEXT_PUBLIC_SUPABASE_URL` = `https://hkgdtybmlrgbvakjgrxl.supabase.co`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = المفتاح العام (anon) من Supabase
+   - `GMAIL_USER` + `GMAIL_APP_PASSWORD` (خادم فقط — كلمة مرور التطبيقات
+     من `myaccount.google.com/apppasswords` بعد تفعيل التحقق بخطوتين)
+   - اترك `RESEND_*` و`WHATSAPP_*` فارغة الآن — الموقع يعمل بدونها.
+4. لا تضع `SUPABASE_SERVICE_ROLE_KEY` هنا — لا حاجة له في هذه الواجهة أبداً.
+5. انشر. بعدها: كل دفع على `main` يعيد النشر تلقائياً.
+
+## النشر التلقائي على Vercel (بديل — خطوات المالك — مرة واحدة)
 
 الحساب الحالي `limited: true` (قراءة فقط)، فإنشاء المشروع بيد المالك حصراً:
 
@@ -34,4 +55,4 @@
 
 ---
 
-تم إعداد وتطوير هذا العمل بواسطة: الأستاذ عادل الحربي - مدير الحاسب
+تم إعداد وتطوير هذا العمل بواسطة: الأستاذ عادل الحربي - مدرب الحاسب
