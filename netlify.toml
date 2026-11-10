@@ -1,0 +1,21 @@
+# Netlify — إعداد النشر لموقع Next.js داخل مجلد app.
+# التطبيق يستخدم App Router + مسارات API (البريد والمراسلة) — لذلك يعمل
+# بوضع SSR الكامل عبر إضافة Next الرسمية، وليس تصديراً ساكناً.
+[build]
+  base = "app"
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# عناوين الأمان على مستوى المنصة (طبقة ثانية فوق ترويسات next.config.ts).
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
