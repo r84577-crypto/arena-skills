@@ -1,10 +1,12 @@
 # Security policy
 
-This repository ships Markdown, small stdlib-only Python checkers, and one bash
-installer. It runs no service, holds no data, and has no runtime dependencies.
-That is a short attack surface, but it is not an empty one: skills are instructions
-that an agent may follow, and instructions are executable in the only sense that
-matters.
+This repository ships two things with two different threat models:
+
+1. **A production web app** (`app/` — Next.js + Supabase + email/WhatsApp
+   delivery). It runs as a service, holds session-gated data, and sends
+   real messages. This is the part most reports will concern.
+2. **Markdown skills and small checkers** (`skills/`, `scripts/`). Instructions
+   an agent may follow — executable in the only sense that matters.
 
 ## Reporting a vulnerability
 
@@ -19,20 +21,30 @@ private channel will be opened.
 
 ### What to include
 
-- The file and line, or the exact command, that triggers the problem.
+- The file and line, or the exact request, that triggers the problem.
 - What an attacker gains. "A secret is exposed" is a finding; "this looks wrong"
   is a hunch, and it will be treated as one.
 - The version or commit you tested.
 
 **Never paste a real credential into a report.** Quote the first four characters
-and the length (`ghp_… 40 chars`). If a live secret has leaked, revoke it first
+and the length (`xox… 60 chars`). If a live secret has leaked, revoke it first
 and then report it — revocation is not something this project can do for you.
 
-## In scope
+## In scope — the app
 
 | Class | Example |
 | --- | --- |
-| Secret leakage | A checker that prints a token value, or a pattern that lets a credential-bearing file pass |
+| Auth bypass | Reaching `/api/send-*` or owner data without an owner session |
+| Ledger forgery | A `comms_log` row marked `sent` without a provider delivery |
+| Scope bleed | Personal data reachable from a training-scoped call or vice versa |
+| Secret leakage | A server-only variable (`*_APP_PASSWORD`, `*_TOKEN`) reaching the browser bundle |
+| Header regression | A route served without the CSP/HSTS baseline in `next.config.ts` |
+| RLS gap | An app-schema table without row-level security (`security_sweep` verdict `drift`) |
+
+## In scope — skills and checkers
+
+| Class | Example |
+| --- | --- |
 | Instruction-level risk | A skill whose instructions would lead an agent to exfiltrate data, run untrusted code, or write outside its stated boundaries |
 | Checker bypass | A file layout that makes `validate-skills.py` or `scan_secrets.py` exit 0 when it should not |
 | Installer behaviour | `install-skills.sh` writing outside its documented destination, or overwriting without `--force` |
@@ -40,40 +52,24 @@ and then report it — revocation is not something this project can do for you.
 
 ## Out of scope
 
-- **The third-party repositories described in `docs/`.** They are referenced, never
-  vendored, and their security is their own. Report issues to their maintainers.
-  See [NOTICE.md](NOTICE.md) for the distinction.
-- **The `docx`, `pdf`, `pptx`, and `xlsx` skills in `anthropics/skills`.** They are
-  proprietary and are documented here only as a warning. This repository does not
-  ship them.
+- **Supabase, Netlify, Meta, Google, and Resend infrastructure.** Their
+  security is their own; report issues to their maintainers.
+- **The third-party repositories described in `docs/`.** They are referenced,
+  never vendored. See [NOTICE.md](NOTICE.md).
 - **`allowed-tools` being advisory.** Hosts may ignore it; this is a documented
-  property of the format, not a vulnerability. [README.md](README.md) says so plainly.
-- Missing hardening on your own machine (sandboxing, agent permissions). That is
-  configuration, not a defect here.
+  property of the format, not a vulnerability.
+- Missing hardening on your own machine (sandboxing, agent permissions).
 
 ## What this project does and does not promise
 
-The checkers are heuristics. `scan_secrets.py` has two layers and neither is complete:
-
-- **Known shapes** — provider prefixes (`ghp_`, `npm_`, `AKIA`, `xox*`, PEM blocks) and
-  the generic `secret = "…"` assignment. These catch what they name and nothing else.
-- **Entropy** — strings that look random but match no provider. This is the only layer
-  that can catch a custom token, and it is a guess: it will miss a secret that looks
-  like prose, and it refuses to guess at all in ambiguous shapes (hashes, paths,
-  identifiers, URLs) because a scanner that cries wolf gets bypassed with `--no-verify`.
-  Of the two failure modes, we chose silence over noise, deliberately.
-
-`validate-skills.py` checks structure, not intent. A clean run means *these specific
-checks found nothing*, and nothing more.
-
-`data/secret-allowlist.json` records suppressions, each with a reason of at least 15
-characters. A missing or thin reason fails the build. Provider prefixes cannot be
-allowlisted: an entry may explain a quoted example, never a live `ghp_` token.
-
-Nothing here has been executed against a hostile repository as part of a test suite.
-No skill is reviewed by a security professional before merge. Skills are read by
-humans, checked mechanically, and merged — treat third-party skills you install as
-code you have not read, because that is what they are.
+- Row-level security is enforced in the database and verified live
+  (`security_sweep()->>'verdict'` must read `clean`); the app never trusts
+  the client for the final send status.
+- `scan_secrets.py` is heuristic (known shapes + entropy); a clean run means
+  *these specific checks found nothing*, and nothing more.
+- Nothing here has been reviewed by a security professional or tested against
+  a hostile deployment. Treat third-party skills you install as code you have
+  not read, because that is what they are.
 
 ## Response
 

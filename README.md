@@ -7,6 +7,7 @@ This repository has two halves, and they are deliberately separate:
 - **[`skills/`](skills/README.md)** — the actual skills, one directory per skill, each with a `SKILL.md`. This is the part that is meant to be loaded by an agent.
 - **[`docs/`](docs/authenticating.md)** — reference material for publishing and consuming packages on GitHub Packages (NuGet, Maven, npm, RubyGems, containers). Useful to humans and to agents, but not itself a skill.
 - **[`data/skill-sources.json`](data/skill-sources.json)** — the machine-readable list behind [`docs/skill-sources.md`](docs/skill-sources.md), checked weekly by CI for dead or archived sources.
+- **[`app/`](app/DEPLOY.md)** — the production sovereign dashboard (Next.js + Supabase + email/WhatsApp delivery). Deployed on Netlify; the deploy guide is the entry point.
 
 The two halves are separate because a skill is an instruction set with a defined contract, and copied vendor documentation is not. Mixing them made both harder to use — see [Why this layout](#why-this-layout).
 
@@ -27,6 +28,16 @@ The two halves are separate because a skill is an instruction set with a defined
 
 `skills/index.json` is the generated manifest; `python3 scripts/validate-skills.py` enforces the
 contract and CI runs it on every pull request.
+
+### Production app
+
+| Entry | What it is |
+| --- | --- |
+| [`app/`](app/DEPLOY.md) | Sovereign dashboard: owner login, live sovereign metrics, comms ledger (email + WhatsApp), 3D scene |
+| [`app/DEPLOY.md`](app/DEPLOY.md) | Deploy guide — Netlify (approved) / Vercel (alternative), env vars, owner steps |
+| [`docs/database-dr.md`](docs/database-dr.md) | Database reality: what is in-repo, what is live-only, backup and restore order |
+| [`CHANGELOG.md`](CHANGELOG.md) | Release history by `main` merge date |
+| [`SECURITY.md`](SECURITY.md) | Threat model and private reporting (app + skills) |
 
 ### GitHub Packages reference
 
