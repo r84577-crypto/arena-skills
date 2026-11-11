@@ -3,13 +3,15 @@
 /**
  * المراسلة الصادرة — إيميل وواتساب من اللوحة.
  *
- * التدفق مقصود بعناية:
- *   1. تُسجَّل الرسالة في public.comms_log أولاً (RLS: المالك فقط،
- *      وقيد CHECK يرفض أي رقم واتساب غير رقم المالك).
- *   2. يُستدعى مسار التسليم الخلفي، فيتحقق من الجلسة والنطاق ثم يرسل.
- *   3. يُحدَّث الصف بالنتيجة (sent / failed / blocked / not_configured).
+ * التدفق مقصود بعناية (القاعدة المؤسسية):
+ *   1. تُسجَّل الرسالة في public.comms_log أولاً كمسودة queued
+ *      (RLS: المالك فقط، وقيد CHECK يرفض أي رقم واتساب غير رقم المالك).
+ *   2. يُستدعى مسار التسليم الخلفي مع id الصف، فيتحقق من الجلسة
+ *      والمالك والصف والحصة، ثم يرسل ويكتب النتيجة النهائية بنفسه.
+ *   3. الواجهة تعرض فقط — لا تكتب النتيجة أبداً (منع تزوير «أُرسلت»).
  *
  * بلا جلسة: قفل. بلا مفاتيح مزوّد: not_configured بصدق، لا تظاهر.
+ * الحصة: 50 إرسال ناجح / 24 ساعة (كل القنوات) — تُعرض المتبقية أدناه.
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -55,6 +57,7 @@ export default function CommsPanel() {
   const [body, setBody] = useState("");
   const [result, setResult] = useState<Result>({ k: "idle" });
   const [log, setLog] = useState<LogRow[]>([]);
+  const [quotaLeft, setQuotaLeft] = useState<number | null>(null);
 
   const refreshLog = useCallback(async () => {
     const sb = supabaseBrowser();
@@ -65,6 +68,14 @@ export default function CommsPanel() {
       .order("id", { ascending: false })
       .limit(5);
     if (data) setLog(data as LogRow[]);
+    // الحصة المتبقية — عرض فقط، والإنفاذ الحقيقي في المسار الخلفي.
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count } = await sb
+      .from("comms_log")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "sent")
+      .gte("created_at", since);
+    if (count !== null) setQuotaLeft(Math.max(0, 50 - count));
   }, []);
 
   useEffect(() => {
@@ -105,10 +116,10 @@ export default function CommsPanel() {
       return;
     }
 
-    // 2) التسليم عبر المسار الخلفي.
+    // 2) التسليم عبر المسار الخلفي — وهو من يوثّق النتيجة في الدفتر.
     setResult({ k: "busy", step: "يُرسَل عبر المزوّد…" });
     const token = await getAccessToken();
-    let outcome: { status: string; reason?: string; provider_ref?: string };
+    let outcome: { status: string; reason?: string; provider_ref?: string; ledger?: string };
     try {
       const res = await fetch(`/api/send-${channel}`, {
         method: "POST",
@@ -129,24 +140,15 @@ export default function CommsPanel() {
       outcome = { status: "failed", reason: err instanceof Error ? err.message : "تعذّر الوصول للمسار" };
     }
 
-    // 3) تحديث الصف بالنتيجة.
-    await sb
-      .from("comms_log")
-      .update({
-        status: outcome.status,
-        reason: outcome.reason ?? null,
-        provider_ref: outcome.provider_ref ?? null,
-        sent_at: outcome.status === "sent" ? new Date().toISOString() : null,
-      })
-      .eq("id", row.id);
-
+    // 3) العرض فقط — النتيجة وثّقها المسار الخلفي في الدفتر.
     const tone = outcome.status === "sent" ? "ok" : outcome.status === "not_configured" ? "warn" : "bad";
+    const ledgerWarn = outcome.ledger === "update_failed" ? " (تنبيه: تعذّر توثيق النتيجة في الدفتر)" : "";
     const text =
       outcome.status === "sent"
-        ? `أُرسلت وسُجّلت (#${row.id}).`
+        ? `أُرسلت وسُجّلت (#${row.id}).${ledgerWarn}`
         : outcome.status === "not_configured"
           ? `سُجّلت (#${row.id}) بانتظار تهيئة المزوّد — لم يُرسَل شيء.`
-          : `سُجّلت (#${row.id}) وفشل التسليم: ${outcome.reason ?? outcome.status}`;
+          : `سُجّلت (#${row.id}) وفشل التسليم: ${outcome.reason ?? outcome.status}${ledgerWarn}`;
     setResult({ k: "done", tone, text });
     setBody("");
     if (channel === "email") {
@@ -178,6 +180,11 @@ export default function CommsPanel() {
     <div className="glass login-wrap enter" style={{ maxWidth: 560 }}>
       <h2>رسالة جديدة</h2>
       <p className="sub">تُسجَّل قبل إرسالها، وتُذيَّل بإسناد نطاقها تلقائياً.</p>
+      {quotaLeft !== null && (
+        <p className="sub" role="status">
+          الحصة المتبقية (24 ساعة): {quotaLeft} من 50
+        </p>
+      )}
 
       <div className="tabs" role="tablist" aria-label="القناة">
         <button
