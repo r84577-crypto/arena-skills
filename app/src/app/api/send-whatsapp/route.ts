@@ -6,6 +6,7 @@ import {
   sentInLast24h,
   updateLogRow,
 } from "@/lib/comms-server";
+import { OWNER_NUMBER, normalize } from "@/lib/phone";
 
 /**
  * POST /api/send-whatsapp — التسليم الخلفي للواتساب.
@@ -28,22 +29,12 @@ import {
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const OWNER_NUMBER = "966508247153";
 const MAX_BODY = 4000;
 
 const FOOTERS: Record<string, string> = {
   TRAINING: "تم إعداد وتطوير هذا العمل بواسطة: الأستاذ عادل الحربي - مدرب الحاسب",
   PERSONAL: "تم إعداد وتطوير هذا العمل بواسطة: الأستاذ عادل الحربي - مدير الحاسب",
 };
-
-/** تطبيع كل الصيغ (0508247153، ‎+966…‎، 966…) إلى صيغة واحدة. */
-function normalize(input: string): string | null {
-  const digits = input.replace(/\D/g, "");
-  if (/^9665\d{8}$/.test(digits)) return digits;
-  if (/^05\d{8}$/.test(digits)) return `966${digits.slice(1)}`;
-  if (/^5\d{8}$/.test(digits)) return `966${digits}`;
-  return null;
-}
 
 export async function POST(req: Request) {
   const token = process.env.WHATSAPP_TOKEN;
