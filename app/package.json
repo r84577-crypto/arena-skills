@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --test --experimental-strip-types \"src/lib/*.test.ts\""
   },
   "dependencies": {
     "@netlify/plugin-nextjs": "^5.16.6",
