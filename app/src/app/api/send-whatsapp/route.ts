@@ -1,13 +1,25 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import {
+  DAILY_QUOTA,
+  fetchQueuedRow,
+  sentInLast24h,
+  updateLogRow,
+} from "@/lib/comms-server";
 
 /**
  * POST /api/send-whatsapp — التسليم الخلفي للواتساب.
  *
  * البوابة مزدوجة: قيد CHECK في القاعدة يرفض أي رقم غير رقم المالك عند
  * التسجيل، وهذا المسار يُطبّع الرقم ويرفض أي غيره قبل الجلسة والمزوّد.
- * الترتيب: التهيئة → البوابة والتحقق → الجلسة → المالك → الإرسال.
+ * الترتيب: التهيئة → البوابة والتحقق → الجلسة والمالك → صف الدفتر →
+ * الحصة → الإرسال → توثيق النتيجة في الدفتر (خادماً).
  * الرقم الوحيد المقبول: 966508247153 (0508247153).
+ *
+ * القاعدة المؤسسية: العميل يُسجِّل المسودة (queued) فقط ويمرّر id —
+ * والخادم يتحقق من الصف (موجود + queued + مطابق) ويرفض إعادة التشغيل،
+ * ثم يكتب النتيجة النهائية بنفسه. لا يوثَّق «أُرسلت» إلا من هنا.
+ * الحصة: DAILY_QUOTA إرسال ناجح / 24 ساعة (كل القنوات) — تجاوزها 429.
  *
  * ملاحظة Meta: الرسائل النصية الحرة تحتاج نافذة محادثة نشطة (24 ساعة)؛
  * خارجها يرفض المزوّد — ونحن نعرض رفضه بصدق بدل ادعاء الإرسال.
@@ -52,17 +64,21 @@ export async function POST(req: Request) {
     );
   }
 
-  let payload: { to?: string; body?: string; scope?: string };
+  let payload: { id?: number; to?: string; body?: string; scope?: string };
   try {
     payload = (await req.json()) as typeof payload;
   } catch {
     return NextResponse.json({ status: "blocked", reason: "جسم غير صالح" }, { status: 400 });
   }
 
+  const id = typeof payload.id === "number" ? payload.id : NaN;
   const normalized = normalize(payload.to ?? "");
   const body = (payload.body ?? "").trim();
   const scope = payload.scope === "PERSONAL" ? "PERSONAL" : payload.scope === "TRAINING" ? "TRAINING" : null;
 
+  if (!Number.isInteger(id)) {
+    return NextResponse.json({ status: "blocked", reason: "معرّف الدفتر مطلوب" }, { status: 400 });
+  }
   // البوابة: أي رقم غير رقم المالك يُرفض هنا — قبل المزوّد وقبل الجلسة،
   // فالرقم المقبول معلن أصلاً ولا سر يُكشف برفض غيره.
   if (normalized !== OWNER_NUMBER) {
@@ -80,11 +96,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ status: "blocked", reason: "بلا رمز جلسة" }, { status: 401 });
   }
 
+  const sb = createClient(url, anon, {
+    auth: { persistSession: false },
+    global: { headers: { Authorization: `Bearer ${bearer}` } },
+  });
   try {
-    const sb = createClient(url, anon, {
-      auth: { persistSession: false },
-      global: { headers: { Authorization: `Bearer ${bearer}` } },
-    });
     const { data: userData, error: userError } = await sb.auth.getUser(bearer);
     if (userError || !userData.user) {
       return NextResponse.json({ status: "blocked", reason: "جلسة غير صالحة" }, { status: 401 });
@@ -97,6 +113,24 @@ export async function POST(req: Request) {
     return NextResponse.json(
       { status: "failed", reason: "تعذّر الوصول لخدمة التحقق" },
       { status: 503 },
+    );
+  }
+
+  // صف الدفتر: موجود + queued + مطابق — وإلا رفض بلا إرسال.
+  // to_addr المخزّن بصيغة 966… وهو نفسه normalized هنا.
+  const check = await fetchQueuedRow(sb, id, { channel: "whatsapp", to: normalized, scope });
+  if (!check.ok) {
+    return NextResponse.json({ status: "blocked", reason: check.reason }, { status: 400 });
+  }
+
+  // الحصة اليومية — تُوثَّق في الصف نفسه لتبقى الحقيقة واحدة.
+  const sent = await sentInLast24h(sb);
+  if (sent !== null && sent >= DAILY_QUOTA) {
+    const reason = `تجاوزت الحصة اليومية (${DAILY_QUOTA} رسالة / 24 ساعة)`;
+    const logged = await updateLogRow(sb, id, { status: "blocked", reason });
+    return NextResponse.json(
+      { status: "blocked", reason, ledger: logged ? "updated" : "update_failed" },
+      { status: 429 },
     );
   }
 
@@ -118,16 +152,26 @@ export async function POST(req: Request) {
     });
     if (!res.ok) {
       const detail = await res.text().catch(() => "");
+      const reason = `المزوّد رفض (${res.status}): ${detail.slice(0, 200)}`;
+      const logged = await updateLogRow(sb, id, { status: "failed", reason });
       return NextResponse.json(
-        { status: "failed", reason: `المزوّد رفض (${res.status}): ${detail.slice(0, 200)}` },
+        { status: "failed", reason, ledger: logged ? "updated" : "update_failed" },
         { status: 502 },
       );
     }
-    const sent = (await res.json()) as { messages?: { id?: string }[] };
-    return NextResponse.json({ status: "sent", provider_ref: sent.messages?.[0]?.id ?? null });
+    const sentRes = (await res.json()) as { messages?: { id?: string }[] };
+    const providerRef = sentRes.messages?.[0]?.id ?? null;
+    const logged = await updateLogRow(sb, id, { status: "sent", providerRef });
+    return NextResponse.json({
+      status: "sent",
+      provider_ref: providerRef,
+      ledger: logged ? "updated" : "update_failed",
+    });
   } catch (e) {
+    const reason = e instanceof Error ? e.message : "خطأ شبكة";
+    const logged = await updateLogRow(sb, id, { status: "failed", reason });
     return NextResponse.json(
-      { status: "failed", reason: e instanceof Error ? e.message : "خطأ شبكة" },
+      { status: "failed", reason, ledger: logged ? "updated" : "update_failed" },
       { status: 502 },
     );
   }

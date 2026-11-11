@@ -7,14 +7,26 @@ import {
   sendViaResend,
   sendViaGmail,
 } from "@/lib/mailer";
+import {
+  DAILY_QUOTA,
+  fetchQueuedRow,
+  sentInLast24h,
+  updateLogRow,
+} from "@/lib/comms-server";
 
 /**
  * POST /api/send-email — التسليم الخلفي للبريد.
  *
- * الترتيب مقصود: اختيار المزوّد → التحقق من الحقول → الجلسة → المالك → الإرسال.
+ * الترتيب مقصود: المزوّد → الحقول → الجلسة والمالك → صف الدفتر →
+ * الحصة → الإرسال → توثيق النتيجة في الدفتر (خادماً).
  * المزوّدان مجانيان: Resend أولاً، ثم Gmail SMTP (كلمة مرور التطبيقات).
  * بلا أي منهما يجيب not_configured (503) بصدق — لا تظاهر بإرسال.
  * الإسناد يُذيَّل حسب النطاق: تدريب → «مدرب الحاسب»، شخصي → «مدير الحاسب».
+ *
+ * القاعدة المؤسسية: العميل يُسجِّل المسودة (queued) فقط ويمرّر id —
+ * والخادم يتحقق من الصف (موجود + queued + مطابق) ويرفض إعادة التشغيل،
+ * ثم يكتب النتيجة النهائية بنفسه. لا يوثَّق «أُرسلت» إلا من هنا.
+ * الحصة: DAILY_QUOTA إرسال ناجح / 24 ساعة (كل القنوات) — تجاوزها 429.
  */
 
 export const dynamic = "force-dynamic";
@@ -49,18 +61,22 @@ export async function POST(req: Request) {
     );
   }
 
-  let payload: { to?: string; subject?: string; body?: string; scope?: string };
+  let payload: { id?: number; to?: string; subject?: string; body?: string; scope?: string };
   try {
     payload = (await req.json()) as typeof payload;
   } catch {
     return NextResponse.json({ status: "blocked", reason: "جسم غير صالح" }, { status: 400 });
   }
 
+  const id = typeof payload.id === "number" ? payload.id : NaN;
   const to = (payload.to ?? "").trim();
   const subject = (payload.subject ?? "").trim();
   const body = (payload.body ?? "").trim();
   const scope = payload.scope === "PERSONAL" ? "PERSONAL" : payload.scope === "TRAINING" ? "TRAINING" : null;
 
+  if (!Number.isInteger(id)) {
+    return NextResponse.json({ status: "blocked", reason: "معرّف الدفتر مطلوب" }, { status: 400 });
+  }
   if (!EMAIL_RE.test(to)) {
     return NextResponse.json({ status: "blocked", reason: "بريد المستلم غير صالح" }, { status: 400 });
   }
@@ -74,12 +90,12 @@ export async function POST(req: Request) {
   }
 
   // التحقق من الجلسة والمالكية عبر القاعدة نفسها — لا ثقة عمياء بالعميل.
-  // public.is_owner غلاف مالكية للمسارات الخلفية (انظر 0010).
+  // public.is_owner غلاف مالكية للمسارات الخلفية.
+  const sb = createClient(url, anon, {
+    auth: { persistSession: false },
+    global: { headers: { Authorization: `Bearer ${bearer}` } },
+  });
   try {
-    const sb = createClient(url, anon, {
-      auth: { persistSession: false },
-      global: { headers: { Authorization: `Bearer ${bearer}` } },
-    });
     const { data: userData, error: userError } = await sb.auth.getUser(bearer);
     if (userError || !userData.user) {
       return NextResponse.json({ status: "blocked", reason: "جلسة غير صالحة" }, { status: 401 });
@@ -92,6 +108,23 @@ export async function POST(req: Request) {
     return NextResponse.json(
       { status: "failed", reason: "تعذّر الوصول لخدمة التحقق" },
       { status: 503 },
+    );
+  }
+
+  // صف الدفتر: موجود + queued + مطابق — وإلا رفض بلا إرسال.
+  const check = await fetchQueuedRow(sb, id, { channel: "email", to, scope });
+  if (!check.ok) {
+    return NextResponse.json({ status: "blocked", reason: check.reason }, { status: 400 });
+  }
+
+  // الحصة اليومية — تُوثَّق في الصف نفسه لتبقى الحقيقة واحدة.
+  const sent = await sentInLast24h(sb);
+  if (sent !== null && sent >= DAILY_QUOTA) {
+    const reason = `تجاوزت الحصة اليومية (${DAILY_QUOTA} رسالة / 24 ساعة)`;
+    const logged = await updateLogRow(sb, id, { status: "blocked", reason });
+    return NextResponse.json(
+      { status: "blocked", reason, ledger: logged ? "updated" : "update_failed" },
+      { status: 429 },
     );
   }
 
@@ -116,10 +149,20 @@ export async function POST(req: Request) {
         });
 
   if (!result.ok) {
+    const logged = await updateLogRow(sb, id, { status: "failed", reason: result.reason });
     return NextResponse.json(
-      { status: "failed", provider, reason: result.reason },
+      { status: "failed", provider, reason: result.reason, ledger: logged ? "updated" : "update_failed" },
       { status: 502 },
     );
   }
-  return NextResponse.json({ status: "sent", provider, provider_ref: result.providerRef });
+  const logged = await updateLogRow(sb, id, {
+    status: "sent",
+    providerRef: result.providerRef,
+  });
+  return NextResponse.json({
+    status: "sent",
+    provider,
+    provider_ref: result.providerRef,
+    ledger: logged ? "updated" : "update_failed",
+  });
 }
