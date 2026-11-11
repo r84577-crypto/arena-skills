@@ -22,11 +22,12 @@
 
 - Supabase يأخذ نسخاً يومية تلقائياً (الاحتفاظ محدود في المجانية).
 - نسخة يدوية قبل أي تغيير هيكلي — من لوحة Supabase ← Database ←
-  Backups، أو سطر الأوامر:
-  ```shell
-  pg_dump "$SUPABASE_DB_URL" -Fc -f backup-$(date +%F).dump
-  ```
+  Backups، أو سطر الأوامر.
 - تُحفظ النسخ خارج المستودع (تخزين المالك الخاص) — لا تُدمَج في Git أبداً.
+
+```shell
+pg_dump "$SUPABASE_DB_URL" -Fc -f backup-$(date +%F).dump
+```
 
 ## ترتيب الاستعادة من الصفر
 
@@ -34,11 +35,12 @@
 2. إن تعذّرت النسخة: طبّق هجرات `db/migrations` بالترتيب الزمني، ثم
    أعد بناء جداول الأعمال من تصدير `pg_dump --schema-only` يؤخذ الآن
    ويُحفظ مع النسخ (بند متابعة، غير منجَز بعد).
-3. تحقق بعد الاستعادة:
-   ```sql
-   select public.security_sweep()->>'verdict';  -- يجب: clean
-   select count(*) from public.comms_log;        -- يطابق التوقع
-   ```
+3. تحقق بعد الاستعادة باستعلامات التحقق أدناه.
+
+```sql
+select public.security_sweep()->>'verdict';  -- يجب: clean
+select count(*) from public.comms_log;        -- يطابق التوقع
+```
 
 ## RPO/RTO واقعيان (مجاني)
 
