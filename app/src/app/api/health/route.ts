@@ -1,32 +1,27 @@
 import { NextResponse } from "next/server";
 
 /**
- * GET /api/health — نبض المؤسسية للمراقبة الخارجية (UptimeRobot ونحوه).
+ * GET /api/health — نبض للمراقبة الخارجية (UptimeRobot ونحوه).
  *
- * عام بلا جلسة عمداً — ويعيد قيماً منطقية فقط (مهيّأ/غير مهيّأ)،
- * لا أسرار ولا عدّادات ولا أي بيانات مالك.
+ * 2026-11-13: كان يعيد `configured: {supabase, mail, whatsapp}` لأي زائر.
+ * هذا كشف مجاني لمهاجم: «الواتساب غير مهيّأ» تعني أن غمر ذلك المسار لا
+ * يكلّف المالك شيئاً، و«البريد مهيّأ» تعني أن استنزاف الحصة ممكن. لا
+ * بيانات مالك كانت مكشوفة، لكن حالة التهيئة الداخلية ليست معلومة عامة.
+ *
+ * الآن: كلمة واحدة. `ok` تعني أن الخادم يرد. لا إصدار، لا commit، لا
+ * حالة تهيئة. من يحتاج تفاصيل التهيئة يقرأ سجلّات المنصة بصلاحية.
  */
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET() {
-  const mail =
-    Boolean(process.env.RESEND_API_KEY) ||
-    Boolean(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD);
-  const whatsapp = Boolean(
-    process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID,
+  return NextResponse.json(
+    { status: "ok" },
+    {
+      headers: {
+        "cache-control": "no-store, max-age=0",
+        "X-Robots-Tag": "noindex, nofollow",
+      },
+    },
   );
-  const supabase = Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  );
-
-  return NextResponse.json({
-    status: "ok",
-    time: new Date().toISOString(),
-    commit:
-      process.env.COMMIT_REF ||
-      process.env.VERCEL_GIT_COMMIT_SHA ||
-      "dev",
-    configured: { supabase, mail, whatsapp },
-  });
 }

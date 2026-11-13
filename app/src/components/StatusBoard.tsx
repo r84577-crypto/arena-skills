@@ -10,7 +10,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchStatus, type Status } from "@/lib/status";
-import { hasSession, signInOwner, signOutOwner } from "@/lib/supabase";
+import { hasSession, signInOwner, signOutAndReload } from "@/lib/supabase";
 
 type State =
   | { k: "loading" }
@@ -212,8 +212,10 @@ export default function StatusBoard() {
         <p>حيّ · {arDate(d.generated_at)}</p>
         <button
           onClick={async () => {
-            await signOutOwner();
+            // الخروج يلغي الجلسة على الخادم ثم يعيد التحميل، فلا تبقى
+            // بيانات اللوحة في الذاكرة بعد الضغط.
             setState({ k: "anon" });
+            await signOutAndReload();
           }}
           className="btn btn-ghost"
         >

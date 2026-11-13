@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import {
   DAILY_QUOTA,
   fetchQueuedRow,
@@ -7,14 +6,26 @@ import {
   updateLogRow,
 } from "@/lib/comms-server";
 import { OWNER_NUMBER, normalize } from "@/lib/phone";
+import { requireOwner } from "@/lib/delivery-guard";
+import {
+  MAX_BODY_CHARS,
+  int,
+  jsonError,
+  logSecurityEvent,
+  oneOf,
+  readJsonBody,
+  sanitizeText,
+  str,
+} from "@/lib/security";
 
 /**
  * POST /api/send-whatsapp — التسليم الخلفي للواتساب.
  *
  * البوابة مزدوجة: قيد CHECK في القاعدة يرفض أي رقم غير رقم المالك عند
- * التسجيل، وهذا المسار يُطبّع الرقم ويرفض أي غيره قبل الجلسة والمزوّد.
- * الترتيب: التهيئة → البوابة والتحقق → الجلسة والمالك → صف الدفتر →
- * الحصة → الإرسال → توثيق النتيجة في الدفتر (خادماً).
+ * التسجيل، وهذا المسار يُطبّع الرقم ويرفض أي غيره قبل المزوّد.
+ * الترتيب: requireOwner (Origin → حدّ IP → جلسة → مالك → حدّ مستخدم) →
+ * بوابة الرقم والتحقق من الحقول → التهيئة → صف الدفتر → الحصة → الإرسال
+ * → التوثيق. الحرّاس قبل أي كشف لحالة التهيئة.
  * الرقم الوحيد المقبول: 966508247153 (0508247153).
  *
  * القاعدة المؤسسية: العميل يُسجِّل المسودة (queued) فقط ويمرّر id —
@@ -29,106 +40,66 @@ import { OWNER_NUMBER, normalize } from "@/lib/phone";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const MAX_BODY = 4000;
-
 const FOOTERS: Record<string, string> = {
   TRAINING: "تم إعداد وتطوير هذا العمل بواسطة: الأستاذ عادل الحربي - مدرب الحاسب",
   PERSONAL: "تم إعداد وتطوير هذا العمل بواسطة: الأستاذ عادل الحربي - مدير الحاسب",
 };
 
 export async function POST(req: Request) {
+  // الحرّاس أولاً: لا يُكشف شيء عن التهيئة قبل إثبات الهوية.
+  const guard = await requireOwner(req);
+  if (!guard.ok) return guard.response;
+  const { sb, userId } = guard;
+
   const token = process.env.WHATSAPP_TOKEN;
   const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   if (!token || !phoneId) {
-    return NextResponse.json(
-      { status: "not_configured", reason: "WHATSAPP_TOKEN أو WHATSAPP_PHONE_NUMBER_ID غير مهيّأ" },
-      { status: 503 },
-    );
+    return jsonError("WHATSAPP_TOKEN أو WHATSAPP_PHONE_NUMBER_ID غير مهيّأ", 503);
   }
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anon) {
-    return NextResponse.json(
-      { status: "failed", reason: "إعدادات Supabase ناقصة على الخادم" },
-      { status: 500 },
-    );
+  const body = await readJsonBody(req);
+  if (!body.ok) {
+    logSecurityEvent("bad_request_body", { route: "/api/send-whatsapp", user: userId, status: body.status });
+    return jsonError(body.reason, body.status);
   }
+  const payload = body.value;
 
-  let payload: { id?: number; to?: string; body?: string; scope?: string };
-  try {
-    payload = (await req.json()) as typeof payload;
-  } catch {
-    return NextResponse.json({ status: "blocked", reason: "جسم غير صالح" }, { status: 400 });
-  }
+  const id = int(payload.id, { min: 1, max: Number.MAX_SAFE_INTEGER });
+  const normalized = normalize(str(payload.to, { max: 32, min: 3 }) ?? "");
+  const rawText = str(payload.body, { max: MAX_BODY_CHARS, min: 1 });
+  const text = rawText === null ? null : sanitizeText(rawText) || null;
+  const scope = oneOf(payload.scope, ["PERSONAL", "TRAINING"] as const);
 
-  const id = typeof payload.id === "number" ? payload.id : NaN;
-  const normalized = normalize(payload.to ?? "");
-  const body = (payload.body ?? "").trim();
-  const scope = payload.scope === "PERSONAL" ? "PERSONAL" : payload.scope === "TRAINING" ? "TRAINING" : null;
-
-  if (!Number.isInteger(id)) {
-    return NextResponse.json({ status: "blocked", reason: "معرّف الدفتر مطلوب" }, { status: 400 });
-  }
-  // البوابة: أي رقم غير رقم المالك يُرفض هنا — قبل المزوّد وقبل الجلسة،
-  // فالرقم المقبول معلن أصلاً ولا سر يُكشف برفض غيره.
+  if (id === null) return jsonError("معرّف الدفتر مطلوب", 400);
+  // البوابة: أي رقم غير رقم المالك يُرفض هنا — قبل المزوّد.
   if (normalized !== OWNER_NUMBER) {
-    return NextResponse.json(
-      { status: "blocked", reason: "الواتساب مقفل على رقم المالك وحده" },
-      { status: 403 },
-    );
+    logSecurityEvent("whatsapp_recipient_rejected", { user: userId });
+    return jsonError("الواتساب مقفل على رقم المالك وحده", 403);
   }
-  if (!body || body.length > MAX_BODY || !scope) {
-    return NextResponse.json({ status: "blocked", reason: "حقول ناقصة أو خارج الحد" }, { status: 400 });
-  }
-
-  const bearer = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-  if (!bearer) {
-    return NextResponse.json({ status: "blocked", reason: "بلا رمز جلسة" }, { status: 401 });
-  }
-
-  const sb = createClient(url, anon, {
-    auth: { persistSession: false },
-    global: { headers: { Authorization: `Bearer ${bearer}` } },
-  });
-  try {
-    const { data: userData, error: userError } = await sb.auth.getUser(bearer);
-    if (userError || !userData.user) {
-      return NextResponse.json({ status: "blocked", reason: "جلسة غير صالحة" }, { status: 401 });
-    }
-    const { data: isOwner, error: ownerError } = await sb.rpc("is_owner");
-    if (ownerError || !isOwner) {
-      return NextResponse.json({ status: "blocked", reason: "ليس المالك" }, { status: 403 });
-    }
-  } catch {
-    return NextResponse.json(
-      { status: "failed", reason: "تعذّر الوصول لخدمة التحقق" },
-      { status: 503 },
-    );
-  }
+  if (text === null) return jsonError("النص ناقص أو خارج الحد", 400);
+  if (scope === null) return jsonError("النطاق غير معروف", 400);
 
   // صف الدفتر: موجود + queued + مطابق — وإلا رفض بلا إرسال.
-  // to_addr المخزّن بصيغة 966… وهو نفسه normalized هنا.
   const check = await fetchQueuedRow(sb, id, { channel: "whatsapp", to: normalized, scope });
   if (!check.ok) {
-    return NextResponse.json({ status: "blocked", reason: check.reason }, { status: 400 });
+    logSecurityEvent("ledger_rejected", { route: "/api/send-whatsapp", user: userId, id });
+    return jsonError(check.reason, 400);
   }
 
-  // الحصة اليومية — تُوثَّق في الصف نفسه لتبقى الحقيقة واحدة.
   const sent = await sentInLast24h(sb);
   if (sent !== null && sent >= DAILY_QUOTA) {
     const reason = `تجاوزت الحصة اليومية (${DAILY_QUOTA} رسالة / 24 ساعة)`;
     const logged = await updateLogRow(sb, id, { status: "blocked", reason });
     return NextResponse.json(
       { status: "blocked", reason, ledger: logged ? "updated" : "update_failed" },
-      { status: 429 },
+      { status: 429, headers: { "cache-control": "no-store" } },
     );
   }
 
-  const text = `${body}\n\n—\n${FOOTERS[scope]}`;
+  const fullText = `${text}\n\n—\n${FOOTERS[scope]}`;
 
   try {
-    const res = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/messages`, {
+    const res = await fetch(`https://graph.facebook.com/v21.0/${encodeURIComponent(phoneId)}/messages`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -138,32 +109,38 @@ export async function POST(req: Request) {
         messaging_product: "whatsapp",
         to: normalized,
         type: "text",
-        text: { body: text },
+        text: { body: fullText },
       }),
     });
     if (!res.ok) {
       const detail = await res.text().catch(() => "");
+      logSecurityEvent("provider_failed", {
+        route: "/api/send-whatsapp",
+        user: userId,
+        status: res.status,
+      });
       const reason = `المزوّد رفض (${res.status}): ${detail.slice(0, 200)}`;
       const logged = await updateLogRow(sb, id, { status: "failed", reason });
       return NextResponse.json(
         { status: "failed", reason, ledger: logged ? "updated" : "update_failed" },
-        { status: 502 },
+        { status: 502, headers: { "cache-control": "no-store" } },
       );
     }
     const sentRes = (await res.json()) as { messages?: { id?: string }[] };
     const providerRef = sentRes.messages?.[0]?.id ?? null;
+    logSecurityEvent("message_sent", { route: "/api/send-whatsapp", user: userId });
     const logged = await updateLogRow(sb, id, { status: "sent", providerRef });
-    return NextResponse.json({
-      status: "sent",
-      provider_ref: providerRef,
-      ledger: logged ? "updated" : "update_failed",
-    });
-  } catch (e) {
-    const reason = e instanceof Error ? e.message : "خطأ شبكة";
+    return NextResponse.json(
+      { status: "sent", provider_ref: providerRef, ledger: logged ? "updated" : "update_failed" },
+      { headers: { "cache-control": "no-store" } },
+    );
+  } catch {
+    logSecurityEvent("provider_unreachable", { route: "/api/send-whatsapp", user: userId });
+    const reason = "تعذّر الوصول لمزوّد الواتساب";
     const logged = await updateLogRow(sb, id, { status: "failed", reason });
     return NextResponse.json(
       { status: "failed", reason, ledger: logged ? "updated" : "update_failed" },
-      { status: 502 },
+      { status: 502, headers: { "cache-control": "no-store" } },
     );
   }
 }

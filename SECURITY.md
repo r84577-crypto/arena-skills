@@ -8,6 +8,19 @@ This repository ships two things with two different threat models:
 2. **Markdown skills and small checkers** (`skills/`, `scripts/`). Instructions
    an agent may follow — executable in the only sense that matters.
 
+## Where the 2026-11-13 review lives
+
+The full review — every item, its severity, the fix, and the test result that
+proves it — is in [docs/security-report.md](docs/security-report.md). The two
+things worth knowing before you read a diff here:
+
+- **Protections are tested, not asserted.** `scripts/security_probe.py` attacks a
+  running instance (55 checks) and `npm test` covers the pure logic (64 checks).
+  Both run in CI. A claim in the report has a command behind it.
+- **The app's guards are a single module.** `src/lib/delivery-guard.ts` runs
+  Origin → IP limit → session → owner → user limit, in that order, for every
+  delivery route. A new route that skips it is a bug, not a shortcut.
+
 ## Reporting a vulnerability
 
 **Do not open a public issue for a security report.**

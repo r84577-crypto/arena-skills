@@ -60,9 +60,44 @@ export async function signInOwner(
   return { ok: true };
 }
 
-export async function signOutOwner(): Promise<void> {
+/**
+ * خروج يُلغي الجلسة على الخادم لا في المتصفح فقط.
+ *
+ * `scope: "global"` هو الافتراضي في المكتبة، لكنه مكتوب صراحةً لأن
+ * الافتراضي يتغيّر وبقاء الجلسة صالحة على جهاز آخر شيء يجب أن يكون
+ * قراراً لا صدفة. التسجيل يُرفض إن فشل الإلغاء، فلا يظن المستخدم أنه
+ * خرج وبقي مفتاحه فعّالاً.
+ */
+export async function signOutOwner(): Promise<{ ok: true } | { ok: false; reason: string }> {
   const sb = supabaseBrowser();
-  await sb?.auth.signOut();
+  if (!sb) return { ok: false, reason: "متغيّرات البيئة غير مضبوطة" };
+  try {
+    const { error } = await sb.auth.signOut({ scope: "global" });
+    if (error) return { ok: false, reason: "تعذّر إنهاء الجلسة — أعد المحاولة" };
+    return { ok: true };
+  } catch {
+    return { ok: false, reason: "تعذّر إنهاء الجلسة — تحقّق من الاتصال" };
+  }
+}
+
+/**
+ * بعد الخروج: نظّف ما علق في التخزين المحلي، وأعد تحميل الصفحة.
+ *
+ * لماذا مسح `localStorage` بالكامل؟ لأن مكوّنات هذه الصفحة لا تخزّن شيئاً
+ * فيه عدا جلسة Supabase. مسح شامل بعد الخروج يضمن ألا تبقى قطعة رمز
+ * يتيمة تُعيد الواجهة إلى حالة «مسجّل» بعد إعادة تحميل، ولا يترك نص
+ * رسالة سابقة على جهاز مشترك.
+ */
+export async function signOutAndReload(): Promise<void> {
+  const result = await signOutOwner();
+  if (!result.ok) return;
+  try {
+    window.localStorage.clear();
+    window.sessionStorage.clear();
+  } catch {
+    // التخزين قد يكون محجوباً في وضع التصفح الخاص — الخروج نفسه تم.
+  }
+  window.location.assign("/");
 }
 
 /** إسناد الواجهة (النطاق الشخصي السيادي). */

@@ -1,40 +1,51 @@
 import type { NextConfig } from "next";
 
 /**
- * هوامش الأمان. كل ترويسة هنا لها سبب، لا واحدة زينة.
- * CSP تمنع أي سكربت غير معروف، وframe-ancestors تمنع التأطير.
- * connect-src تسمح للمتصفح بمخاطبة Supabase فقط — لا طرف ثالث.
+ * ترويسات الأمان الثابتة (لا تعتمد على الطلب).
+ *
+ * لماذا ليست كلها هنا؟ الـ CSP تحتاج nonce جديداً لكل طلب، والملف يُقيَّم
+ * مرة واحدة عند البناء — فتوليد الـ nonce هنا يعطي قيمة واحدة للجميع.
+ * لذلك CSP تُبنى في `src/proxy.ts` (المصدر الوحيد للسياسة)، وهنا تبقى
+ * الترويسات التي لا تتغير. أي ترويسة مكرّرة بين الملفين محذوفة عمداً،
+ * فسياستان في ترويستين تعني تقاطعاً لا يفهمه أحد لاحقاً.
+ *
+ * المفردات:
+ *   HSTS                      منع http بعد أول زيارة (سنتان + preload)
+ *   X-Frame-Options           منع التأطير (طبقة أقدم من frame-ancestors)
+ *   X-Content-Type-Options    منع تخمين النوع (نصّ يُنفَّذ كسكربت)
+ *   Referrer-Policy           لا تسريب مسارات داخلية لمواقع أخرى
+ *   Permissions-Policy        تعطيل الكاميرا/الموقع/الفوترة عن الواجهة
+ *   COOP/CORP                 عزل نافذة/مورد عن أصل آخر
  */
-const csp = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src 'self' https://fonts.gstatic.com data:",
-  "img-src 'self' data: blob:",
-  "connect-src 'self' https://hkgdtybmlrgbvakjgrxl.supabase.co",
-  "worker-src 'self' blob:",
-  "frame-ancestors 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "object-src 'none'",
-].join("; ");
+const staticSecurityHeaders = [
+  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  {
+    key: "Permissions-Policy",
+    value: "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()",
+  },
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+  { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
+  { key: "X-Permitted-Cross-Domain-Policies", value: "none" },
+];
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // لا `X-Powered-By: Next.js` — بصمة الإصدار تُسهّل استهداف ثغرة معروفة.
   poweredByHeader: false,
+
   async headers() {
     return [
       {
         source: "/(.*)",
-        headers: [
-          { key: "Content-Security-Policy", value: csp },
-          { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
-          { key: "X-Frame-Options", value: "DENY" },
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "Permissions-Policy", value: "camera=(), microphone=(self), geolocation=(), interest-cohort=()" },
-          { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
-        ],
+        headers: staticSecurityHeaders,
+      },
+      // لا كاش على أي مسار API — ردود المراسلة خاصة ولا تُشارَك بين طلبات.
+      {
+        source: "/api/(.*)",
+        headers: [{ key: "Cache-Control", value: "no-store, max-age=0" }],
       },
     ];
   },

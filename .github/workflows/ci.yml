@@ -30,3 +30,45 @@ jobs:
       - run: npm test
       - run: npm audit --audit-level=high
       - run: npm run build
+      # A secret behind NEXT_PUBLIC_ ships to every browser permanently; this is
+      # the only point where it can still be stopped.
+      - name: env exposure check
+        working-directory: .
+        run: python3 scripts/check-env-exposure.py --bundle
+      # Start the built app and attack it. Every check in the probe is an
+      # assertion about behaviour over HTTP, which no unit test can prove.
+      - name: security probe
+        working-directory: .
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://hkgdtybmlrgbvakjgrxl.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
+          RESEND_API_KEY: ci-placeholder-not-a-key
+        run: |
+          (cd app && npx next start -p 3111 -H 127.0.0.1 &) 
+          for i in $(seq 1 30); do
+            curl -fsS -H 'x-forwarded-proto: https' http://127.0.0.1:3111/api/health >/dev/null 2>&1 && break
+            sleep 1
+          done
+          python3 scripts/security_probe.py --base http://127.0.0.1:3111
+
+# Secret hygiene runs even when only docs change: a credential in the tree is
+# independent of the code path. Two layers, because they catch different things:
+#   * the tree today (scan_secrets.py — known shapes + entropy)
+#   * everything ever committed (gitleaks — the file may be gone from HEAD)
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Full history: a secret deleted in a later commit is still a secret.
+          fetch-depth: 0
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.12"
+      - name: scan secrets in the working tree
+        run: python3 scripts/scan_secrets.py --strict
+      - name: scan Git history for secrets
+        run: |
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz \
+            | tar -xz gitleaks
+          ./gitleaks detect --source . --redact --no-banner --verbose

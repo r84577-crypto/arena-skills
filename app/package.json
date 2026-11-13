@@ -12,7 +12,6 @@
     "test": "node --test --experimental-strip-types \"src/lib/*.test.ts\""
   },
   "dependencies": {
-    "@netlify/plugin-nextjs": "^5.16.6",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.45.4",
     "next": "^16.4.5",

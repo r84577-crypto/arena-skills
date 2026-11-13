@@ -9,13 +9,37 @@
 [build.environment]
   NODE_VERSION = "22"
 
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
+# إضافة Next تُكتشف تلقائياً من ملف package.json على Netlify مواقع Next
+# (Netlify: "Next.js Runtime" يُفعَّل ذاتياً). كانت مثبّتة مرتين — في
+# package.json وفي هذا الملف — فتثبيت مزدوج لا يضيف حماية ويضيف سطح
+# تحديث إضافي. النسخة الوحيدة الآن هي اكتشاف المنصة.
 
-# عناوين الأمان على مستوى المنصة (طبقة ثانية فوق ترويسات next.config.ts).
+# عناوين الأمان على مستوى المنصة — طبقة ثانية فوق ترويسات next.config.ts
+# وsrc/proxy.ts. التكرار هنا مقصود: لو سقطت إحدى الطبقتين، تبقى الأخرى.
+#
+# HSTS هنا مهم بشكل خاص: ترويسة Next لا تُرسل على الردود التي تولّدها
+# المنصة نفسها (404 لأصول ثابتة، إعادة توجيه الدومين)، فيغطيها هذا الموضع.
 [[headers]]
   for = "/*"
   [headers.values]
+    Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Permitted-Cross-Domain-Policies = "none"
+    Cross-Origin-Opener-Policy = "same-origin"
+
+# مسارات API لا تُخزَّن في شبكة التوزيع ولا في المتصفح.
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Cache-Control = "no-store, max-age=0"
+    X-Robots-Tag = "noindex, nofollow"
+
+# ملفات لا يجوز أن تُخدم أبداً. المنصة تحجبها قبل أن تصل إلى التطبيق،
+# وهذا ما يمنع /.env أو /.git/config من أن تصبح 200 يوماً ما.
+[[headers]]
+  for = "/.env*"
+  [headers.values]
+    Content-Type = "text/plain; charset=utf-8"
+    X-Robots-Tag = "noindex"
