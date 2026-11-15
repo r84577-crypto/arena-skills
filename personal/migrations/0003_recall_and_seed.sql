@@ -1,17 +1,8 @@
 -- =============================================================================
 -- personal/0003_recall_and_seed.sql
---
--- Recall functions, then a seed of the profile facts that are safe to publish.
---
--- WHAT IS DELIBERATELY ABSENT
---   Phone number, both birth dates, medication, diagnosis, and financial
---   practice. They are applied to the live database through a private channel
---   and are not written to this repository, which — until the principal flips
---   it — is public. The published seed therefore covers the non-identifying
---   remainder (name, handles, work, preferences).
---
---   If that is inconvenient, it is inconvenient on purpose: the alternative is
---   a public record of somebody's medical history.
+-- Owner-scoped recall and snapshot functions only.
+-- Person-specific profile values are intentionally not stored in this public file.
+-- Supply owner data through a private, authenticated deployment channel.
 -- =============================================================================
 
 -- ---------------------------------------------------------------------------
@@ -130,68 +121,3 @@ grant execute on function personal.search_memory(text, integer) to authenticated
 grant execute on function personal.match_memory(text, integer, real) to authenticated, service_role;
 grant execute on function personal.snapshot() to authenticated, service_role;
 
--- ---------------------------------------------------------------------------
--- 2. Seed — publishable facts only (26 of 32; the 6 withheld are listed above)
--- ---------------------------------------------------------------------------
-create or replace function personal.seed_profile()
-returns jsonb
-language plpgsql
-security definer
-set search_path = personal, pg_temp
-as $$
-declare
-  v_uid   uuid;
-  v_count integer;
-begin
-  select user_id into v_uid from personal.principal limit 1;
-  if v_uid is null then
-    raise exception 'bootstrap the twin first: select personal.bootstrap();' using errcode = '42501';
-  end if;
-  if v_uid <> auth.uid() then
-    raise exception 'seed_profile must run as the principal' using errcode = '42501';
-  end if;
-
-  with payload (category, key, value, sensitivity) as (
-    values
-      ('identity','full_name','عادل عبدالله الحربي','personal'),
-      ('identity','honorific','أبو عبدالله','public'),
-      ('identity','nationality','سعودي','personal'),
-      ('identity','tribe','حرب','personal'),
-      ('identity','home_city','بريدة','public'),
-      ('identity','region','منطقة القصيم','public'),
-      ('identity','grew_up_in','الرياض حتى سن ١٨','public'),
-      ('identity','family_composition','الوالدان وأربعة أبناء وأربع بنات','personal'),
-      ('identity','dialects','الفصحى، السعودية العامة، النجدية، القصيمية، لهجة حرب','personal'),
-      ('identity','handle_x','@adel__alharbi','public'),
-      ('identity','handle_threads','@sultan86427','public'),
-      ('identity','handle_linkedin','https://www.linkedin.com/in/adel-abdullah-alharbi','public'),
-      ('work','job_title','مدرب الحاسب الآلي ومسؤول التطوير','public'),
-      ('work','employer','معهد الفاو العالي للتدريب — بريدة','public'),
-      ('work','education','بكالوريوس علوم الحاسب — 2024','public'),
-      ('work','contract_pattern','تعاقدياً ٦ أيام، فعلياً ٥ أيام أسبوعياً','personal'),
-      ('work','working_hours','٩ ساعات يومياً','personal'),
-      ('work','teaching_subjects','إدخال البيانات ومعالجة النصوص، أعمال المكاتب، نظم التشغيل، البرمجة، الشبكات وأساسيات الحاسب، الطباعة العربية والإنجليزية، ومقررات التدريب التقني والمهني','public'),
-      ('work','outreach','معرض اليوم الوطني، معرض ريادة، زيارات مؤسسية لجهات حكومية في بريدة، قاعدة بيانات متدربين، نماذج آلية، مواد ترويجية، استبيان QR، واتساب أعمال','public'),
-      ('preference','gaming','ألعاب RPG قصصية وسيرفايفل على PC وPS5','public'),
-      ('preference','reading','مانهوا كورية، روايات ويب، أنمي','public'),
-      ('preference','devices','بيئة سامسونج، بناء أجهزة PC واختبار الأداء، شاشة منحنية 1440p 165Hz','public')
-  )
-  insert into personal.facts (owner_id, category, key, value, source, confidence, sensitivity, verified_at)
-  select v_uid, p.category, p.key, p.value, 'manual', 1.00, p.sensitivity, now()
-  from payload p
-  on conflict (owner_id, category, key) do update
-    set value = excluded.value, source = excluded.source, confidence = excluded.confidence,
-        sensitivity = excluded.sensitivity, verified_at = excluded.verified_at, updated_at = now();
-
-  get diagnostics v_count = row_count;
-
-  insert into personal.agent_runs (owner_id, agent, action, target, status, detail, finished_at)
-  values (v_uid, 'arena', 'seed_profile', 'personal.facts', 'ok',
-          jsonb_build_object('facts', v_count, 'scope', 'publishable_only'), now());
-
-  return personal.snapshot() || jsonb_build_object('facts_written', v_count);
-end;
-$$;
-
-revoke all on function personal.seed_profile() from public, anon;
-grant execute on function personal.seed_profile() to authenticated, service_role;
